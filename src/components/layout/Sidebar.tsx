@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LayoutGrid, Users, ChevronDown, ChevronRight, Clock, PanelLeftClose } from 'lucide-react'
+import { LayoutGrid, Users, ChevronDown, ChevronRight, Clock, PanelLeftClose, FileText } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { cn } from '../../lib/utils'
 
@@ -18,15 +18,28 @@ const attendanceMenu = {
   ],
 }
 
+const leaveMenu = {
+  label: 'Quản lý đơn xin nghỉ',
+  icon: FileText,
+  children: [
+    { to: '/attendance/leave-request', label: 'Đơn xin nghỉ' },
+    { to: '/attendance/absence', label: 'Quản lý vắng' },
+  ],
+}
+
+const allMenus = [attendanceMenu, leaveMenu]
+
 export default function Sidebar() {
   const location = useLocation()
-  const [isExpanded, setIsExpanded] = useState(
-    attendanceMenu.children.some((c) => location.pathname.startsWith(c.to))
-  )
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {}
+    allMenus.forEach(m => { initial[m.label] = m.children.some(c => location.pathname.startsWith(c.to)) })
+    return initial
+  })
 
   const isActive = (to: string) => location.pathname === to
-  const isParentActive = () =>
-    attendanceMenu.children.some((c) => location.pathname.startsWith(c.to))
+  const isParentActive = (menu: typeof attendanceMenu) => menu.children.some(c => location.pathname.startsWith(c.to))
+  const toggleMenu = (label: string) => setExpandedMenus(prev => ({ ...prev, [label]: !prev[label] }))
 
   return (
     <aside className="w-64 border-r flex flex-col shrink-0">
@@ -59,44 +72,46 @@ export default function Sidebar() {
           </Link>
         ))}
 
-        <div>
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className={cn(
-              'w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors border-l-2',
-              isParentActive()
-                ? 'border-primary bg-primary/5 text-primary'
-                : 'border-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-            )}
-          >
-            <attendanceMenu.icon className="h-4 w-4" />
-            <span className="flex-1 text-left">{attendanceMenu.label}</span>
-            {isExpanded ? (
-              <ChevronDown className="h-4 w-4" />
-            ) : (
-              <ChevronRight className="h-4 w-4" />
-            )}
-          </button>
+        {allMenus.map(menu => (
+          <div key={menu.label}>
+            <button
+              onClick={() => toggleMenu(menu.label)}
+              className={cn(
+                'w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors border-l-2',
+                isParentActive(menu)
+                  ? 'border-primary bg-primary/5 text-primary'
+                  : 'border-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+              )}
+            >
+              <menu.icon className="h-4 w-4" />
+              <span className="flex-1 text-left">{menu.label}</span>
+              {expandedMenus[menu.label] ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+            </button>
 
-          {isExpanded && (
-            <div className="ml-4 border-l border-border">
-              {attendanceMenu.children.map(({ to, label }) => (
-                <Link
-                  key={to}
-                  to={to}
-                  className={cn(
-                    'flex items-center gap-3 pl-4 pr-4 py-2 text-sm transition-colors border-l-2',
-                    isActive(to)
-                      ? 'border-primary bg-primary/5 text-primary'
-                      : 'border-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-                  )}
-                >
-                  {label}
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
+            {expandedMenus[menu.label] && (
+              <div className="ml-4 border-l border-border">
+                {menu.children.map(({ to, label }) => (
+                  <Link
+                    key={to}
+                    to={to}
+                    className={cn(
+                      'flex items-center gap-3 pl-4 pr-4 py-2 text-sm transition-colors border-l-2',
+                      isActive(to)
+                        ? 'border-primary bg-primary/5 text-primary'
+                        : 'border-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                    )}
+                  >
+                    {label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
       </nav>
     </aside>
   )
