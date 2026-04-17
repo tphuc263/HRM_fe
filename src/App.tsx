@@ -7,21 +7,30 @@ import MonthlyAttendancePage from './pages/attendance/MonthlyAttendancePage'
 import OvertimeRegistrationPage from './pages/attendance/OvertimeRegistrationPage'
 import LeaveRequestPage from './pages/attendance/LeaveRequestPage'
 import AbsenceManagementPage from './pages/attendance/AbsenceManagementPage'
+import RequireAuth from './components/auth/RequireAuth'
+import LoginPage from './pages/auth/LoginPage'
+
+function ProtectedPage({ children }: { children: React.ReactNode }) {
+  return (
+    <RequireAuth>
+      <Layout>{children}</Layout>
+    </RequireAuth>
+  )
+}
 
 function App() {
   return (
     <BrowserRouter>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/employees" element={<EmployeeListPage />} />
-          <Route path="/attendance/daily" element={<DailyAttendancePage />} />
-          <Route path="/attendance/monthly" element={<MonthlyAttendancePage />} />
-          <Route path="/attendance/overtime" element={<OvertimeRegistrationPage />} />
-          <Route path="/attendance/leave-request" element={<LeaveRequestPage />} />
-          <Route path="/attendance/absence" element={<AbsenceManagementPage />} />
-        </Routes>
-      </Layout>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/" element={<ProtectedPage><DashboardPage /></ProtectedPage>} />
+        <Route path="/employees" element={<ProtectedPage><EmployeeListPage /></ProtectedPage>} />
+        <Route path="/attendance/daily" element={<ProtectedPage><DailyAttendancePage /></ProtectedPage>} />
+        <Route path="/attendance/monthly" element={<ProtectedPage><MonthlyAttendancePage /></ProtectedPage>} />
+        <Route path="/attendance/overtime" element={<ProtectedPage><OvertimeRegistrationPage /></ProtectedPage>} />
+        <Route path="/attendance/leave-request" element={<ProtectedPage><LeaveRequestPage /></ProtectedPage>} />
+        <Route path="/attendance/absence" element={<ProtectedPage><AbsenceManagementPage /></ProtectedPage>} />
+      </Routes>
     </BrowserRouter>
   )
 }

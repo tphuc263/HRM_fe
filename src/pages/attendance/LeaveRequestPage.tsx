@@ -101,9 +101,10 @@ export default function LeaveRequestPage() {
     else { setSortKey(key); setSortDir('asc') }
   }
 
-  const SortIcon = ({ col }: { col: SortKey }) => sortKey === col ? (
-    <ChevronDownIcon className={`h-3 w-3 inline ml-1 ${sortDir === 'asc' ? 'rotate-180' : ''}`} />
-  ) : null
+  const renderSortIcon = (col: SortKey) => {
+    if (sortKey !== col) return null
+    return <ChevronDownIcon className={`h-3 w-3 inline ml-1 ${sortDir === 'asc' ? 'rotate-180' : ''}`} />
+  }
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -160,13 +161,13 @@ export default function LeaveRequestPage() {
             <TableHeader><TableRow className="bg-muted/50">
               <TableHead className="w-10"></TableHead>
               <TableHead className="w-10"><Checkbox checked={selected.length === filtered.length && filtered.length > 0} onCheckedChange={toggleAll} /></TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={() => handleSort('employeeCode')}>Mã nhân viên <SortIcon col="employeeCode" /></TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={() => handleSort('fullName')}>Họ và tên <SortIcon col="fullName" /></TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={() => handleSort('department')}>Phòng ban <SortIcon col="department" /></TableHead>
+              <TableHead className="cursor-pointer select-none" onClick={() => handleSort('employeeCode')}>Mã nhân viên {renderSortIcon('employeeCode')}</TableHead>
+              <TableHead className="cursor-pointer select-none" onClick={() => handleSort('fullName')}>Họ và tên {renderSortIcon('fullName')}</TableHead>
+              <TableHead className="cursor-pointer select-none" onClick={() => handleSort('department')}>Phòng ban {renderSortIcon('department')}</TableHead>
               <TableHead>Loại nghỉ</TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={() => handleSort('startDate')}>Ngày bắt đầu <SortIcon col="startDate" /></TableHead>
+              <TableHead className="cursor-pointer select-none" onClick={() => handleSort('startDate')}>Ngày bắt đầu {renderSortIcon('startDate')}</TableHead>
               <TableHead>Ngày kết thúc</TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={() => handleSort('days')}>Số ngày <SortIcon col="days" /></TableHead>
+              <TableHead className="cursor-pointer select-none" onClick={() => handleSort('days')}>Số ngày {renderSortIcon('days')}</TableHead>
               <TableHead>Tình trạng</TableHead>
             </TableRow></TableHeader>
             <TableBody>

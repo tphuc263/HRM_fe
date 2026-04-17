@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { LayoutGrid, Users, ChevronDown, ChevronRight, Clock, PanelLeftClose, FileText } from 'lucide-react'
-import { Link, useLocation } from 'react-router-dom'
+import { LayoutGrid, Users, ChevronDown, ChevronRight, Clock, PanelLeftClose, FileText, LogOut } from 'lucide-react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { cn } from '../../lib/utils'
+import { useAuth } from '../../context/useAuth'
 
 const mainNavItems = [
   { to: '/', label: 'Trang chủ', icon: LayoutGrid },
@@ -31,6 +32,8 @@ const allMenus = [attendanceMenu, leaveMenu]
 
 export default function Sidebar() {
   const location = useLocation()
+  const navigate = useNavigate()
+  const { user, logout } = useAuth()
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {}
     allMenus.forEach(m => { initial[m.label] = m.children.some(c => location.pathname.startsWith(c.to)) })
@@ -40,6 +43,11 @@ export default function Sidebar() {
   const isActive = (to: string) => location.pathname === to
   const isParentActive = (menu: typeof attendanceMenu) => menu.children.some(c => location.pathname.startsWith(c.to))
   const toggleMenu = (label: string) => setExpandedMenus(prev => ({ ...prev, [label]: !prev[label] }))
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login', { replace: true })
+  }
 
   return (
     <aside className="w-64 border-r flex flex-col shrink-0">
@@ -113,6 +121,20 @@ export default function Sidebar() {
           </div>
         ))}
       </nav>
+
+      <div className="border-t p-3">
+        <div className="mb-2 px-1 text-xs text-muted-foreground">
+          {user?.employeeName || user?.username}
+          <span className="block uppercase tracking-wide">{user?.role}</span>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-2 px-2 py-2 rounded-md text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+        >
+          <LogOut className="h-4 w-4" />
+          Dang xuat
+        </button>
+      </div>
     </aside>
   )
 }

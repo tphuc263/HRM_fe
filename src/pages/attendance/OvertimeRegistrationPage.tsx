@@ -10,12 +10,12 @@ const mockData = [
 ]
 
 export default function OvertimeRegistrationPage() {
-  const [selected, setSelected] = useState([])
-  const [expanded, setExpanded] = useState(null)
+  const [selected, setSelected] = useState<number[]>([])
+  const [expanded, setExpanded] = useState<number | null>(null)
 
   const toggleAll = () => setSelected(selected.length === mockData.length ? [] : mockData.map(d => d.id))
-  const toggle = (id) => setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
-  const toggleExpand = (id) => setExpanded(prev => prev === id ? null : id)
+  const toggle = (id: number) => setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  const toggleExpand = (id: number) => setExpanded(prev => prev === id ? null : id)
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
