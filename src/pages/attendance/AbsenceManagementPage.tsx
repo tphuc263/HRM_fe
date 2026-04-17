@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { RefreshCw, Search } from 'lucide-react'
+import { RefreshCw, Search, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
 import { attendanceService } from '../../services/attendanceService'
+import { employeeService } from '../../services/employeeService'
 import type { AttendanceRecordDto } from '../../types/attendance'
+import type { EmployeeDto } from '../../types/hrm'
 import { useAuth } from '../../context/useAuth'
+
+const PAGE_SIZE = 10
 
 function toIsoDate(value: Date) {
   return value.toISOString().split('T')[0]
@@ -27,10 +31,30 @@ export default function AbsenceManagementPage() {
   const isAdmin = user?.role === 'ADMIN'
 
   const [rows, setRows] = useState<AttendanceRecordDto[]>([])
+  const [employees, setEmployees] = useState<EmployeeDto[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [date, setDate] = useState(toIsoDate(new Date()))
+  const [currentPage, setCurrentPage] = useState(1)
+
+  const [employeeId, setEmployeeId] = useState<number | null>(null)
+  const [note, setNote] = useState('')
+  const [marking, setMarking] = useState(false)
+
+  const loadEmployees = useCallback(async () => {
+    if (!isAdmin) return
+    try {
+      const data = await employeeService.getAll({ page: 0, size: 200, sortBy: 'name', sortDir: 'asc', status: 'ACTIVE' })
+      setEmployees(data.content)
+      if (data.content.length > 0) {
+        setEmployeeId(data.content[0].id)
+      }
+    } catch {
+      setEmployees([])
+      setEmployeeId(null)
+    }
+  }, [isAdmin])
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -40,6 +64,7 @@ export default function AbsenceManagementPage() {
         ? await attendanceService.getDaily(date)
         : await attendanceService.getMyRecords({ from: date, to: date })
       setRows(data.filter((r) => r.status === 'ABSENT'))
+      setCurrentPage(1)
     } catch (err) {
       setRows([])
       setError((err as Error).message)
@@ -52,37 +77,91 @@ export default function AbsenceManagementPage() {
     void loadData()
   }, [loadData])
 
+  useEffect(() => {
+    void loadEmployees()
+  }, [loadEmployees])
+
   const filtered = useMemo(() => {
     let data = rows
     if (search) {
       const q = search.toLowerCase()
-      data = data.filter(d =>
-        d.employeeName.toLowerCase().includes(q) ||
-        d.employeeCode.toLowerCase().includes(q) ||
-        (d.note || '').toLowerCase().includes(q)
+      data = data.filter((d) =>
+        d.employeeName.toLowerCase().includes(q)
+        || d.employeeCode.toLowerCase().includes(q)
+        || (d.note || '').toLowerCase().includes(q),
       )
     }
-    return data
+    return [...data].sort((a, b) => a.employeeName.localeCompare(b.employeeName, 'vi', { sensitivity: 'base' }))
   }, [rows, search])
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const pageRows = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+
+  const handleMarkAbsent = async () => {
+    if (!isAdmin || !employeeId) return
+
+    setMarking(true)
+    try {
+      await attendanceService.markAbsent(employeeId, date, note || undefined)
+      setNote('')
+      await loadData()
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setMarking(false)
+    }
+  }
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <div className="bg-[#3d6b59] h-10 flex items-center px-4"><span className="text-white text-sm font-medium">TIME365</span></div>
       <div className="p-6 overflow-auto flex-1">
-        <div className="mb-4"><h1 className="text-2xl font-semibold text-foreground">Quan ly vang</h1></div>
+        <div className="mb-4"><h1 className="text-2xl font-semibold text-foreground">Quản lý vắng</h1></div>
 
-        <div className="bg-white border rounded-md p-4 mb-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div><label className="text-sm text-muted-foreground mb-1 block">Nhan vien</label>
-              <div className="relative"><Input placeholder="Tim ten/ma/ly do" className="pr-8" value={search} onChange={e => setSearch(e.target.value)} /><Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /></div>
+        <div className="bg-white border rounded-md p-4 mb-4 space-y-4">
+          {isAdmin && (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Nhân viên</label>
+                <select
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                  value={employeeId || ''}
+                  onChange={(e) => setEmployeeId(Number(e.target.value))}
+                >
+                  {employees.map((e) => (
+                    <option key={e.id} value={e.id}>{e.code} - {e.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Ngày vắng</label>
+                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Lý do</label>
+                <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Nhập lý do (nếu có)" />
+              </div>
+              <div className="flex items-end">
+                <Button onClick={() => void handleMarkAbsent()} disabled={marking || !employeeId}>
+                  <Plus className="h-4 w-4" />
+                  Đánh vắng mặt
+                </Button>
+              </div>
             </div>
-            <div><label className="text-sm text-muted-foreground mb-1 block">Ngay vang</label>
-              <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="text-sm text-muted-foreground mb-1 block">Tìm kiếm</label>
+              <div className="relative"><Input placeholder="Tìm tên/mã/lý do" className="pr-8" value={search} onChange={(e) => setSearch(e.target.value)} /><Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /></div>
+            </div>
+            <div><label className="text-sm text-muted-foreground mb-1 block">Theo ngày</label>
+              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
             <div className="flex items-end">
               <Button variant="outline" onClick={() => void loadData()}>
                 <RefreshCw className="h-4 w-4" />
-                Tai lai
+                Tải lại
               </Button>
             </div>
           </div>
@@ -94,17 +173,17 @@ export default function AbsenceManagementPage() {
             <TableHeader><TableRow className="bg-muted/50">
               <TableHead>Mã nhân viên</TableHead>
               <TableHead>Họ và tên</TableHead>
-              <TableHead>Ngay vang</TableHead>
+              <TableHead>Ngày vắng</TableHead>
               <TableHead>Thời gian bắt đầu</TableHead>
               <TableHead>Thời gian kết thúc</TableHead>
               <TableHead>Lý do</TableHead>
             </TableRow></TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Dang tai du lieu...</TableCell></TableRow>
-              ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Khong co du lieu vang mat</TableCell></TableRow>
-              ) : filtered.map(row => (
+                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Đang tải dữ liệu...</TableCell></TableRow>
+              ) : pageRows.length === 0 ? (
+                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Không có dữ liệu vắng mặt</TableCell></TableRow>
+              ) : pageRows.map((row) => (
                 <TableRow key={`${row.id || 'x'}-${row.employeeId}-${row.date}`}>
                   <TableCell className="font-medium">{row.employeeCode}</TableCell>
                   <TableCell>{row.employeeName}</TableCell>
@@ -117,8 +196,28 @@ export default function AbsenceManagementPage() {
             </TableBody>
           </Table>
         </div>
+
+        <div className="flex items-center justify-between px-2 py-3 border-t bg-background">
+          <span className="text-sm text-muted-foreground">
+            Hiển thị {filtered.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, filtered.length)} trong {filtered.length} bản ghi
+          </span>
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
+              <ChevronsLeft className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </Button>
+            <span className="px-3 text-sm">Trang {currentPage} / {totalPages}</span>
+            <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>
+              <ChevronsRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   )
 }
-

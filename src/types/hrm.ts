@@ -14,6 +14,25 @@ export interface EmployeeDto {
   resignationDate?: string | null
   createdAt?: string
   updatedAt?: string
+  generatedAccount?: AccountInfo | null
+}
+
+export interface AccountInfo {
+  username: string
+  defaultPassword: string
+  role: string
+}
+
+export interface EmployeeUpsertPayload {
+  code: string
+  name: string
+  email: string
+  phone?: string
+  birthday?: string
+  address?: string
+  joinDate: string
+  departmentId?: number
+  avatar?: string
 }
 
 export interface EmployeeListQuery {

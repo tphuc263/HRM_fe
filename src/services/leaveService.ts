@@ -36,4 +36,22 @@ export const leaveService = {
   getMyBalances(year: number) {
     return unwrapResponse<LeaveBalanceDto[]>(apiClient.get('/leave-balances/my', { params: { year } }))
   },
+  getEmployeeBalances(employeeId: number, year: number) {
+    return unwrapResponse<LeaveBalanceDto[]>(
+      apiClient.get(`/leave-balances/employee/${employeeId}`, { params: { year } }),
+    )
+  },
+  initBalance(employeeId: number, year: number) {
+    return unwrapResponse<void>(apiClient.post('/leave-balances/init', null, { params: { employeeId, year } }))
+  },
+  updateBalance(id: number, totalDays?: number, carryOverDays?: number) {
+    return unwrapResponse<LeaveBalanceDto>(
+      apiClient.put(`/leave-balances/${id}`, null, {
+        params: {
+          totalDays,
+          carryOverDays,
+        },
+      }),
+    )
+  },
 }

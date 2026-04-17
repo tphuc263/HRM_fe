@@ -35,4 +35,15 @@ export const attendanceService = {
   adminUpdate(recordId: number, payload: AttendanceUpdatePayload) {
     return unwrapResponse<AttendanceRecordDto>(apiClient.put(`/attendance/${recordId}`, payload))
   },
+  markAbsent(employeeId: number, date: string, note?: string) {
+    return unwrapResponse<AttendanceRecordDto>(
+      apiClient.post('/attendance/mark-absent', null, {
+        params: {
+          employeeId,
+          date,
+          note: note || undefined,
+        },
+      }),
+    )
+  },
 }

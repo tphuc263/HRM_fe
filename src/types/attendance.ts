@@ -25,6 +25,8 @@ export interface MonthlyStatsDto {
 }
 
 export interface AttendanceUpdatePayload {
+  employeeId?: number
+  date?: string
   checkIn?: string
   checkOut?: string
   status?: string

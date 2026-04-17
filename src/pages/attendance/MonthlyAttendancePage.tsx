@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Calendar, RefreshCw } from 'lucide-react'
+import { Calendar, RefreshCw, FileDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
@@ -36,6 +36,7 @@ function formatDate(value: string) {
 }
 
 export default function MonthlyAttendancePage() {
+  const PAGE_SIZE = 10
   const { user } = useAuth()
   const isAdmin = user?.role === 'ADMIN'
 
@@ -46,6 +47,7 @@ export default function MonthlyAttendancePage() {
   const [stats, setStats] = useState<MonthlyStatsDto | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
     const loadEmployees = async () => {
@@ -100,6 +102,8 @@ export default function MonthlyAttendancePage() {
           totalOvertimeHours,
         })
       }
+
+      setCurrentPage(1)
     } catch (err) {
       setError((err as Error).message)
       setRecords([])
@@ -118,18 +122,51 @@ export default function MonthlyAttendancePage() {
     [records],
   )
 
+  const totalPages = Math.max(1, Math.ceil(sortedRecords.length / PAGE_SIZE))
+  const pageRows = sortedRecords.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+
+  const handleExport = () => {
+    const header = ['Ngày', 'Check-in', 'Check-out', 'Trạng thái', 'Giờ làm', 'Tăng ca', 'Ghi chú']
+    const csvRows = [
+      '\uFEFF' + header.join(','),
+      ...sortedRecords.map((r) => [
+        r.date,
+        r.checkIn || '',
+        r.checkOut || '',
+        r.status || '',
+        String(r.workHours ?? 0),
+        String(r.overtimeHours ?? 0),
+        (r.note || '').replaceAll(',', ' '),
+      ].join(',')),
+    ]
+
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `attendance-monthly-${month}.csv`
+    anchor.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <div className="bg-[#3d6b59] h-10 flex items-center px-4">
         <span className="text-white text-sm font-medium">TIME365</span>
       </div>
       <div className="p-6 overflow-auto flex-1">
-        <div className="mb-4"><h1 className="text-2xl font-semibold text-foreground">Cong thang</h1></div>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h1 className="text-2xl font-semibold text-foreground">Công tháng</h1>
+          <Button variant="outline" onClick={handleExport}>
+            <FileDown className="h-4 w-4" />
+            Báo cáo Excel
+          </Button>
+        </div>
 
         <div className="bg-white border rounded-md p-4 mb-4 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="text-sm text-muted-foreground mb-1 block">Thang lam viec</label>
+              <label className="text-sm text-muted-foreground mb-1 block">Tháng làm việc</label>
               <div className="relative">
                 <Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="pr-8" />
                 <Calendar className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -138,7 +175,7 @@ export default function MonthlyAttendancePage() {
 
             {isAdmin && (
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">Nhan vien</label>
+                <label className="text-sm text-muted-foreground mb-1 block">Nhân viên</label>
                 <select
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
                   value={employeeId || ''}
@@ -154,7 +191,7 @@ export default function MonthlyAttendancePage() {
             <div className="flex items-end">
               <Button variant="outline" onClick={() => void loadData()}>
                 <RefreshCw className="h-4 w-4" />
-                Tai lai
+                Tải lại
               </Button>
             </div>
           </div>
@@ -164,19 +201,19 @@ export default function MonthlyAttendancePage() {
           {stats && (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div className="rounded-md border p-3">
-                <p className="text-xs text-muted-foreground">Nhan vien</p>
+                <p className="text-xs text-muted-foreground">Nhân viên</p>
                 <p className="font-medium">{stats.employeeCode} - {stats.employeeName}</p>
               </div>
               <div className="rounded-md border p-3">
-                <p className="text-xs text-muted-foreground">Ngay di lam</p>
+                <p className="text-xs text-muted-foreground">Ngày đi làm</p>
                 <p className="font-medium">{stats.totalWorkDays}</p>
               </div>
               <div className="rounded-md border p-3">
-                <p className="text-xs text-muted-foreground">So lan di tre</p>
+                <p className="text-xs text-muted-foreground">Số lần đi trễ</p>
                 <p className="font-medium">{stats.lateCount}</p>
               </div>
               <div className="rounded-md border p-3">
-                <p className="text-xs text-muted-foreground">Tong gio OT</p>
+                <p className="text-xs text-muted-foreground">Tổng giờ OT</p>
                 <p className="font-medium">{stats.totalOvertimeHours}</p>
               </div>
             </div>
@@ -187,21 +224,21 @@ export default function MonthlyAttendancePage() {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
-                <TableHead>Ngay</TableHead>
+                <TableHead>Ngày</TableHead>
                 <TableHead>Check-in</TableHead>
                 <TableHead>Check-out</TableHead>
-                <TableHead>Trang thai</TableHead>
-                <TableHead>Gio lam</TableHead>
-                <TableHead>Tang ca</TableHead>
-                <TableHead>Ghi chu</TableHead>
+                <TableHead>Trạng thái</TableHead>
+                <TableHead>Giờ làm</TableHead>
+                <TableHead>Tăng ca</TableHead>
+                <TableHead>Ghi chú</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Dang tai du lieu...</TableCell></TableRow>
-              ) : sortedRecords.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Khong co du lieu cong thang</TableCell></TableRow>
-              ) : sortedRecords.map((r) => (
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Đang tải dữ liệu...</TableCell></TableRow>
+              ) : pageRows.length === 0 ? (
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Không có dữ liệu công tháng</TableCell></TableRow>
+              ) : pageRows.map((r) => (
                 <TableRow key={`${r.id || 'x'}-${r.employeeId}-${r.date}`}>
                   <TableCell>{formatDate(r.date)}</TableCell>
                   <TableCell>{r.checkIn?.slice(0, 5) || '-'}</TableCell>
@@ -214,6 +251,27 @@ export default function MonthlyAttendancePage() {
               ))}
             </TableBody>
           </Table>
+        </div>
+
+        <div className="flex items-center justify-between px-2 py-3 border-t bg-background">
+          <span className="text-sm text-muted-foreground">
+            Hiển thị {sortedRecords.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, sortedRecords.length)} trong {sortedRecords.length} bản ghi
+          </span>
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
+              <ChevronsLeft className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </Button>
+            <span className="px-3 text-sm">Trang {currentPage} / {totalPages}</span>
+            <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>
+              <ChevronsRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         </div>
       </div>
     </div>
