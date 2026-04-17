@@ -71,13 +71,16 @@ export default function PayrollListPage() {
     }
   };
 
+  // Fetch payrolls - Unified Effect
   useEffect(() => {
     fetchPayrolls();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [monthFilter, currentPage, searchQuery, departmentFilter, sortBy, sortDir]);
 
+  // Reset to first page when filters change
   useEffect(() => {
-    setCurrentPage(1);
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
   }, [monthFilter, searchQuery, departmentFilter, sortBy, sortDir]);
 
   useEffect(() => {

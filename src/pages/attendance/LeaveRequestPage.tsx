@@ -166,8 +166,11 @@ export default function LeaveRequestPage() {
 
   useEffect(() => {
     void loadTypes()
+  }, [loadTypes])
+
+  useEffect(() => {
     void loadRequests()
-  }, [loadRequests, loadTypes])
+  }, [loadRequests])
 
   useEffect(() => {
     void loadEmployees()
@@ -182,7 +185,9 @@ export default function LeaveRequestPage() {
   }, [loadAdminBalances])
 
   useEffect(() => {
-    setCurrentPage(1)
+    if (currentPage !== 1) {
+      setCurrentPage(1)
+    }
   }, [activeTab, leaveTypeFilter, search])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {

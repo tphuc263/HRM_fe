@@ -51,13 +51,13 @@ function App() {
         <Route path="/admin/attendance/absence" element={<ProtectedPage allowedRoles={['ADMIN']}><AbsenceManagementPage /></ProtectedPage>} />
         <Route path="/admin/payroll/manage" element={<ProtectedPage allowedRoles={['ADMIN']}><PayrollListPage /></ProtectedPage>} />
 
-        <Route path="/employees" element={<Navigate to="/admin/employees" replace />} />
-        <Route path="/attendance/daily" element={<Navigate to="/admin/attendance/daily" replace />} />
-        <Route path="/attendance/monthly" element={<Navigate to="/admin/attendance/monthly" replace />} />
-        <Route path="/attendance/overtime" element={<Navigate to="/admin/attendance/overtime" replace />} />
-        <Route path="/attendance/leave-request" element={<Navigate to="/admin/attendance/leave-request" replace />} />
-        <Route path="/attendance/absence" element={<Navigate to="/admin/attendance/absence" replace />} />
-        <Route path="/payroll/manage" element={<Navigate to="/admin/payroll/manage" replace />} />
+        <Route path="/employees" element={<ProtectedPage allowedRoles={['ADMIN']}><EmployeeListPage /></ProtectedPage>} />
+        <Route path="/attendance/daily" element={<ProtectedPage><DailyAttendancePage /></ProtectedPage>} />
+        <Route path="/attendance/monthly" element={<ProtectedPage><MonthlyAttendancePage /></ProtectedPage>} />
+        <Route path="/attendance/overtime" element={<ProtectedPage><OvertimeRegistrationPage /></ProtectedPage>} />
+        <Route path="/attendance/leave-request" element={<ProtectedPage><LeaveRequestPage /></ProtectedPage>} />
+        <Route path="/attendance/absence" element={<ProtectedPage><AbsenceManagementPage /></ProtectedPage>} />
+        <Route path="/payroll/manage" element={<ProtectedPage allowedRoles={['ADMIN']}><PayrollListPage /></ProtectedPage>} />
 
         <Route path="/payroll/my-salary" element={<ProtectedPage><MyPayrollPage /></ProtectedPage>} />
       </Routes>

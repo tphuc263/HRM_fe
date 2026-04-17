@@ -108,7 +108,9 @@ export default function AbsenceManagementPage() {
   }, [loadEmployees])
 
   useEffect(() => {
-    setCurrentPage(1)
+    if (currentPage !== 1) {
+      setCurrentPage(1)
+    }
   }, [date, search])
 
   const handleMarkAbsent = async () => {

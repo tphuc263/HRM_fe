@@ -128,7 +128,9 @@ export default function DailyAttendancePage() {
   }, [loadData])
 
   useEffect(() => {
-    setCurrentPage(1)
+    if (currentPage !== 1) {
+      setCurrentPage(1)
+    }
   }, [date, search])
 
   const handleCheckIn = async () => {

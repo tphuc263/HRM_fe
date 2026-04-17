@@ -138,7 +138,9 @@ export default function MonthlyAttendancePage() {
   }, [loadData])
 
   useEffect(() => {
-    setCurrentPage(1)
+    if (currentPage !== 1) {
+      setCurrentPage(1)
+    }
   }, [month, employeeId])
 
   const handleExport = () => {
