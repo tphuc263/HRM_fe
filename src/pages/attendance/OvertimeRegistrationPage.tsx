@@ -20,9 +20,12 @@ import { attendanceService } from '../../services/attendanceService'
 import { overtimeService } from '../../services/overtimeService'
 import type { AttendanceRecordDto, OvertimeRequestResponse } from '../../types/attendance'
 import { useAuth } from '../../context/useAuth'
+import { useToast } from '../../context/ToastContext'
 import OvertimeRequestModal from '../../components/attendance/OvertimeRequestModal'
 import OvertimeDetailModal from '../../components/attendance/OvertimeDetailModal'
 import AttendanceDetailModal from '../../components/attendance/AttendanceDetailModal'
+import { ConfirmModal } from '../../components/ui/ConfirmModal'
+import { PromptModal } from '../../components/ui/PromptModal'
 import { Eye } from 'lucide-react'
 
 function formatDate(value: string) {
@@ -58,7 +61,24 @@ export default function OvertimeRegistrationPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedRequest, setSelectedRequest] = useState<OvertimeRequestResponse | null>(null)
   const [selectedAttendanceRecord, setSelectedAttendanceRecord] = useState<AttendanceRecordDto | null>(null)
-  const [error, setError] = useState('')
+  
+  // Custom Modals States
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    onConfirm: () => void
+    variant?: 'primary' | 'danger'
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => {} })
+
+  const [promptConfig, setPromptConfig] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    onConfirm: (val: string) => void
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => {} })
+
+  const { success, error: toastError } = useToast()
 
   // Load Attendance Records (Automatic OT)
   const loadRecords = useCallback(async () => {
@@ -92,7 +112,7 @@ export default function OvertimeRegistrationPage() {
         setRecordsTotalItems(overtimeRows.length)
       }
     } catch (err) {
-      setError('Lỗi khi tải dữ liệu chấm công: ' + (err as Error).message)
+      toastError('Lỗi khi tải dữ liệu chấm công: ' + (err as Error).message)
     } finally {
       setRecordsLoading(false)
     }
@@ -118,7 +138,7 @@ export default function OvertimeRegistrationPage() {
       setRequestsTotalPages(Math.max(1, data.totalPages))
       setRequestsTotalItems(data.totalElements)
     } catch (err) {
-      setError('Lỗi khi tải đơn đăng ký: ' + (err as Error).message)
+      toastError('Lỗi khi tải đơn đăng ký: ' + (err as Error).message)
     } finally {
       setRequestsLoading(false)
     }
@@ -132,35 +152,56 @@ export default function OvertimeRegistrationPage() {
     }
   }, [activeTab, loadRecords, loadRequests])
 
-  const handleApprove = async (id: number) => {
-    if (!confirm('Bạn có chắc chắn muốn duyệt đơn này?')) return
-    try {
-      await overtimeService.approveRequest(id)
-      void loadRequests()
-    } catch (err) {
-      alert((err as Error).message)
-    }
+  const handleApprove = (id: number) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Xác nhận duyệt đơn',
+      message: 'Bạn có chắc chắn muốn phê duyệt đơn đăng ký tăng ca này không?',
+      onConfirm: async () => {
+        try {
+          await overtimeService.approveRequest(id)
+          success('Đã duyệt đơn tăng ca thành công')
+          void loadRequests()
+        } catch (err) {
+          toastError((err as Error).message)
+        }
+      }
+    })
   }
 
-  const handleReject = async (id: number) => {
-    const reason = prompt('Nhập lý do từ chối:')
-    if (reason === null) return
-    try {
-      await overtimeService.rejectRequest(id, reason)
-      void loadRequests()
-    } catch (err) {
-      alert((err as Error).message)
-    }
+  const handleReject = (id: number) => {
+    setPromptConfig({
+      isOpen: true,
+      title: 'Từ chối đơn tăng ca',
+      message: 'Vui lòng nhập lý do từ chối để nhân viên được biết:',
+      onConfirm: async (reason) => {
+        try {
+          await overtimeService.rejectRequest(id, reason)
+          success('Đã từ chối đơn tăng ca')
+          void loadRequests()
+        } catch (err) {
+          toastError((err as Error).message)
+        }
+      }
+    })
   }
 
-  const handleCancel = async (id: number) => {
-    if (!confirm('Bạn có chắc chắn muốn hủy đơn này?')) return
-    try {
-      await overtimeService.cancelRequest(id)
-      void loadRequests()
-    } catch (err) {
-      alert((err as Error).message)
-    }
+  const handleCancel = (id: number) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Hủy đơn đăng ký',
+      message: 'Bạn có chắc chắn muốn hủy đơn đăng ký tăng ca này?',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await overtimeService.cancelRequest(id)
+          success('Đã hủy đơn đăng ký')
+          void loadRequests()
+        } catch (err) {
+          toastError((err as Error).message)
+        }
+      }
+    })
   }
 
   const getStatusBadge = (status: string) => {
@@ -453,20 +494,15 @@ export default function OvertimeRegistrationPage() {
         onClose={() => setSelectedAttendanceRecord(null)}
       />
 
-      {error && (
-        <div className="fixed bottom-6 right-6 group animate-in slide-in-from-right-10 duration-500">
-           <div className="bg-red-600 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3">
-              <AlertCircle className="h-6 w-6" />
-              <div className="flex flex-col">
-                <span className="font-bold">Lỗi hệ thống</span>
-                <span className="text-sm text-red-100">{error}</span>
-              </div>
-              <button onClick={() => setError('')} className="ml-4 hover:bg-white/10 rounded-lg p-1 transition-colors">
-                <X className="h-5 w-5" />
-              </button>
-           </div>
-        </div>
-      )}
+      <ConfirmModal 
+        {...confirmConfig}
+        onClose={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+      />
+
+      <PromptModal 
+        {...promptConfig}
+        onClose={() => setPromptConfig(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   )
 }

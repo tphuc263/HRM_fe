@@ -4,6 +4,7 @@ import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Textarea } from '../ui/textarea'
 import { overtimeService } from '../../services/overtimeService'
+import { useToast } from '../../context/ToastContext'
 
 interface Props {
   isOpen: boolean
@@ -17,14 +18,13 @@ export default function OvertimeRequestModal({ isOpen, onClose, onSuccess }: Pro
   const [endTime, setEndTime] = useState('19:30')
   const [reason, setReason] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState('')
+  const { success, error: toastError } = useToast()
 
   if (!isOpen) return null
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
-    setError('')
     try {
       await overtimeService.createRequest({
         date,
@@ -32,10 +32,11 @@ export default function OvertimeRequestModal({ isOpen, onClose, onSuccess }: Pro
         endTime: `${endTime}:00`,
         reason,
       })
+      success('Đã gửi đơn đăng ký tăng ca thành công. Vui lòng chờ phê duyệt.')
       onSuccess()
       onClose()
     } catch (err) {
-      setError((err as Error).message)
+      toastError((err as Error).message)
     } finally {
       setSubmitting(false)
     }
@@ -55,11 +56,6 @@ export default function OvertimeRequestModal({ isOpen, onClose, onSuccess }: Pro
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {error && (
-            <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-2 rounded-lg text-sm font-medium">
-              {error}
-            </div>
-          )}
 
           <div className="space-y-1.5">
             <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
