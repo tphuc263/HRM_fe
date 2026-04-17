@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LayoutGrid, Users, ChevronDown, ChevronRight, Clock, PanelLeftClose, FileText, LogOut } from 'lucide-react'
+import { LayoutGrid, Users, ChevronDown, ChevronRight, Clock, PanelLeftClose, FileText, LogOut, Wallet } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { cn } from '../../lib/utils'
 import { useAuth } from '../../context/useAuth'
@@ -28,7 +28,16 @@ const leaveMenu = {
   ],
 }
 
-const allMenus = [attendanceMenu, leaveMenu]
+const payrollMenu = {
+  label: 'Quản lý Lương',
+  icon: Wallet,
+  children: [
+    { to: '/payroll/my-salary', label: 'Lương của tôi' },
+    { to: '/payroll/manage', label: 'Quản lý phiếu lương (Admin)' },
+  ],
+}
+
+const allMenus = [attendanceMenu, leaveMenu, payrollMenu]
 
 export default function Sidebar() {
   const location = useLocation()

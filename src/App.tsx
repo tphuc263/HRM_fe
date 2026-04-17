@@ -9,6 +9,8 @@ import LeaveRequestPage from './pages/attendance/LeaveRequestPage'
 import AbsenceManagementPage from './pages/attendance/AbsenceManagementPage'
 import RequireAuth from './components/auth/RequireAuth'
 import LoginPage from './pages/auth/LoginPage'
+import PayrollListPage from './pages/payroll/PayrollListPage'
+import MyPayrollPage from './pages/payroll/MyPayrollPage'
 
 function ProtectedPage({ children }: { children: React.ReactNode }) {
   return (
@@ -30,6 +32,8 @@ function App() {
         <Route path="/attendance/overtime" element={<ProtectedPage><OvertimeRegistrationPage /></ProtectedPage>} />
         <Route path="/attendance/leave-request" element={<ProtectedPage><LeaveRequestPage /></ProtectedPage>} />
         <Route path="/attendance/absence" element={<ProtectedPage><AbsenceManagementPage /></ProtectedPage>} />
+        <Route path="/payroll/manage" element={<ProtectedPage><PayrollListPage /></ProtectedPage>} />
+        <Route path="/payroll/my-salary" element={<ProtectedPage><MyPayrollPage /></ProtectedPage>} />
       </Routes>
     </BrowserRouter>
   )
