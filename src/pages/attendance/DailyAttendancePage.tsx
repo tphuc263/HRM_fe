@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   Loader2,
   LogIn,
@@ -40,11 +40,11 @@ function toIsoDate(value: Date) {
 function statusLabel(status?: string | null) {
   if (!status) return '-'
   const map: Record<string, string> = {
-    ON_TIME: 'Dung gio',
-    LATE: 'Di tre',
-    EARLY_LEAVE: 'Ve som',
-    ABSENT: 'Vang mat',
-    HALF_DAY: 'Nua ngay',
+    ON_TIME: 'Đúng giờ',
+    LATE: 'Đi trễ',
+    EARLY_LEAVE: 'Về sớm',
+    ABSENT: 'Vắng mặt',
+    HALF_DAY: 'Nửa ngày',
   }
   return map[status] || status
 }
@@ -76,52 +76,60 @@ export default function DailyAttendancePage() {
   const [actionLoading, setActionLoading] = useState(false)
   const [error, setError] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
 
   const loadData = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
       if (isAdmin) {
-        const data = await attendanceService.getDaily(date)
-        setRows(data)
+        const pageData = await attendanceService.getDaily({
+          date,
+          keyword: search.trim() || undefined,
+          page: currentPage - 1,
+          size: PAGE_SIZE,
+          sortBy: 'employee.code',
+          sortDir: 'asc',
+        })
+        setRows(pageData.content)
+        setTotalPages(Math.max(1, pageData.totalPages))
+        setTotalItems(pageData.totalElements)
       } else if (date === toIsoDate(new Date())) {
         const today = await attendanceService.getToday()
         setRows([today])
+        setTotalPages(1)
+        setTotalItems(1)
       } else {
-        const data = await attendanceService.getMyRecords({ from: date, to: date })
-        setRows(data)
+        const pageData = await attendanceService.getMyRecords({
+          from: date,
+          to: date,
+          page: currentPage - 1,
+          size: PAGE_SIZE,
+          sortBy: 'date',
+          sortDir: 'desc',
+        })
+        setRows(pageData.content)
+        setTotalPages(Math.max(1, pageData.totalPages))
+        setTotalItems(pageData.totalElements)
       }
-      setCurrentPage(1)
     } catch (err) {
       setRows([])
+      setTotalPages(1)
+      setTotalItems(0)
       setError((err as Error).message)
     } finally {
       setLoading(false)
     }
-  }, [date, isAdmin])
+  }, [currentPage, date, isAdmin, search])
 
   useEffect(() => {
     void loadData()
   }, [loadData])
 
-  const filteredRows = useMemo(() => {
-    let data = rows
-    if (search.trim()) {
-      const keyword = search.toLowerCase()
-      data = rows.filter((r) =>
-        [r.employeeCode, r.employeeName, r.status]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase()
-          .includes(keyword),
-      )
-    }
-
-    return [...data].sort((a, b) => a.employeeName.localeCompare(b.employeeName, 'vi', { sensitivity: 'base' }))
-  }, [rows, search])
-
-  const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE))
-  const pageRows = filteredRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [date, search])
 
   const handleCheckIn = async () => {
     setActionLoading(true)
@@ -181,9 +189,9 @@ export default function DailyAttendancePage() {
   }
 
   const handleExport = () => {
-    const rows: string[][] = [
+    const csvRows: string[][] = [
       ['Mã nhân viên', 'Họ tên', 'Ngày', 'Check-in', 'Check-out', 'Trạng thái', 'Giờ làm', 'Tăng ca', 'Ghi chú'],
-      ...filteredRows.map((r) => [
+      ...rows.map((r) => [
         r.employeeCode,
         r.employeeName,
         r.date,
@@ -196,7 +204,7 @@ export default function DailyAttendancePage() {
       ]),
     ]
 
-    downloadCsv(`attendance-daily-${date}.csv`, rows)
+    downloadCsv(`attendance-daily-${date}-page-${currentPage}.csv`, csvRows)
   }
 
   return (
@@ -278,14 +286,14 @@ export default function DailyAttendancePage() {
                     Đang tải dữ liệu...
                   </TableCell>
                 </TableRow>
-              ) : pageRows.length === 0 ? (
+              ) : rows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={isAdmin ? 9 : 8} className="text-center py-8 text-muted-foreground">
                     Không có dữ liệu công ngày
                   </TableCell>
                 </TableRow>
               ) : (
-                pageRows.map((row) => (
+                rows.map((row) => (
                   <TableRow key={`${row.employeeId}-${row.date}-${row.id || 'x'}`}>
                     <TableCell className="font-medium">{row.employeeCode}</TableCell>
                     <TableCell>{row.employeeName}</TableCell>
@@ -312,7 +320,7 @@ export default function DailyAttendancePage() {
 
         <div className="flex items-center justify-between px-2 py-3 border-t bg-background">
           <span className="text-sm text-muted-foreground">
-            Hiển thị {filteredRows.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, filteredRows.length)} trong {filteredRows.length} bản ghi
+            Hiển thị {totalItems === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, totalItems)} trong {totalItems} bản ghi
           </span>
           <div className="flex items-center gap-1">
             <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>

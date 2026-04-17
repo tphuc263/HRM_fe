@@ -43,3 +43,22 @@ export interface AttendanceQueryRange {
   from: string
   to: string
 }
+
+export interface AttendanceListQuery extends AttendanceQueryRange {
+  status?: string
+  page?: number
+  size?: number
+  sortBy?: string
+  sortDir?: 'asc' | 'desc'
+}
+
+export interface DailyAttendanceQuery {
+  date: string
+  keyword?: string
+  status?: string
+  hasOvertime?: boolean
+  page?: number
+  size?: number
+  sortBy?: string
+  sortDir?: 'asc' | 'desc'
+}

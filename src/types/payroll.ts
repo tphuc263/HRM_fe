@@ -1,4 +1,4 @@
-export type PayrollStatus = 'DRAFT' | 'CALCULATED' | 'APPROVED';
+export type PayrollStatus = 'DRAFT' | 'CALCULATED' | 'APPROVED' | 'PAID';
 
 export interface PayrollResponse {
   id: number;

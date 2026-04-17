@@ -3,21 +3,23 @@ import type {
   LeaveBalanceDto,
   LeaveRequestCreatePayload,
   LeaveRequestDto,
+  LeaveRequestListQuery,
   LeaveTypeDto,
 } from '../types/leave'
+import type { PageData } from '../types/api'
 
 export const leaveService = {
   getLeaveTypes() {
     return unwrapResponse<LeaveTypeDto[]>(apiClient.get('/leave-types'))
   },
-  getMyRequests() {
-    return unwrapResponse<LeaveRequestDto[]>(apiClient.get('/leave-requests/my'))
+  getMyRequests(query?: LeaveRequestListQuery) {
+    return unwrapResponse<PageData<LeaveRequestDto>>(apiClient.get('/leave-requests/my', { params: query }))
   },
-  getPendingRequests() {
-    return unwrapResponse<LeaveRequestDto[]>(apiClient.get('/leave-requests/pending'))
+  getPendingRequests(query?: LeaveRequestListQuery) {
+    return unwrapResponse<PageData<LeaveRequestDto>>(apiClient.get('/leave-requests/pending', { params: query }))
   },
-  getAllRequests(status?: string) {
-    return unwrapResponse<LeaveRequestDto[]>(apiClient.get('/leave-requests', { params: { status } }))
+  getAllRequests(query?: LeaveRequestListQuery) {
+    return unwrapResponse<PageData<LeaveRequestDto>>(apiClient.get('/leave-requests', { params: query }))
   },
   submitRequest(payload: LeaveRequestCreatePayload) {
     return unwrapResponse<LeaveRequestDto>(apiClient.post('/leave-requests', payload))

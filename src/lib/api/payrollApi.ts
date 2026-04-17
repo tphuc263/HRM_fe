@@ -5,6 +5,26 @@ import type {
   GenerateRequest, 
   ApiResponse 
 } from '../../types/payroll';
+import type { PageData } from '../../types/api';
+
+type PayrollListQuery = {
+  month: string;
+  status?: string;
+  keyword?: string;
+  departmentId?: number;
+  page?: number;
+  size?: number;
+  sortBy?: string;
+  sortDir?: 'asc' | 'desc';
+};
+
+type PayrollHistoryQuery = {
+  status?: string;
+  page?: number;
+  size?: number;
+  sortBy?: string;
+  sortDir?: 'asc' | 'desc';
+};
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
 
@@ -35,16 +55,33 @@ async function fetcher<T>(url: string, options?: RequestInit): Promise<ApiRespon
 }
 
 export const payrollApi = {
-  getPayrollsByMonth(month: string) {
-    return fetcher<PayrollResponse[]>(`/payrolls?month=${month}`);
+  getPayrollsByMonth(query: PayrollListQuery) {
+    const params = new URLSearchParams({ month: query.month });
+    if (query.status) params.set('status', query.status);
+    if (query.keyword) params.set('keyword', query.keyword);
+    if (query.departmentId != null) params.set('departmentId', String(query.departmentId));
+    if (query.page != null) params.set('page', String(query.page));
+    if (query.size != null) params.set('size', String(query.size));
+    if (query.sortBy) params.set('sortBy', query.sortBy);
+    if (query.sortDir) params.set('sortDir', query.sortDir);
+
+    return fetcher<PageData<PayrollResponse>>(`/payrolls?${params.toString()}`);
   },
 
   getPayrollById(id: number) {
     return fetcher<PayrollResponse>(`/payrolls/${id}`);
   },
 
-  getPayrollsByEmployee(employeeId: number) {
-    return fetcher<PayrollResponse[]>(`/payrolls/employee/${employeeId}`);
+  getPayrollsByEmployee(employeeId: number, query?: PayrollHistoryQuery) {
+    const params = new URLSearchParams();
+    if (query?.status) params.set('status', query.status);
+    if (query?.page != null) params.set('page', String(query.page));
+    if (query?.size != null) params.set('size', String(query.size));
+    if (query?.sortBy) params.set('sortBy', query.sortBy);
+    if (query?.sortDir) params.set('sortDir', query.sortDir);
+
+    const suffix = params.toString();
+    return fetcher<PageData<PayrollResponse>>(`/payrolls/employee/${employeeId}${suffix ? `?${suffix}` : ''}`);
   },
 
   generatePayroll(month: number, year: number, workDays: number = 22, body?: GenerateRequest) {

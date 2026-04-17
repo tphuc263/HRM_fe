@@ -51,3 +51,13 @@ export interface LeaveBalanceDto {
   carryOverDays: number
   remainingDays: number
 }
+
+export interface LeaveRequestListQuery {
+  status?: string
+  leaveTypeId?: number
+  keyword?: string
+  page?: number
+  size?: number
+  sortBy?: string
+  sortDir?: 'asc' | 'desc'
+}

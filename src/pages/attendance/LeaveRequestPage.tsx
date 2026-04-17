@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useState } from 'react'
 import { ChevronDown, ChevronUp, Loader2, Plus, Search, RefreshCw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
@@ -62,6 +62,8 @@ export default function LeaveRequestPage() {
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null)
   const [error, setError] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
   const [showCreateForm, setShowCreateForm] = useState(false)
 
   const [year, setYear] = useState<number>(getCurrentYear())
@@ -96,18 +98,30 @@ export default function LeaveRequestPage() {
     setLoading(true)
     setError('')
     try {
+      const query = {
+        status: activeTab,
+        leaveTypeId: leaveTypeFilter === 'ALL' ? undefined : leaveTypeFilter,
+        keyword: search.trim() || undefined,
+        page: currentPage - 1,
+        size: PAGE_SIZE,
+        sortBy: 'createdAt',
+        sortDir: 'desc' as const,
+      }
       const data = isAdmin
-        ? await leaveService.getAllRequests()
-        : await leaveService.getMyRequests()
-      setRequests(data)
-      setCurrentPage(1)
+        ? await leaveService.getAllRequests(query)
+        : await leaveService.getMyRequests(query)
+      setRequests(data.content)
+      setTotalPages(Math.max(1, data.totalPages))
+      setTotalItems(data.totalElements)
     } catch (err) {
       setRequests([])
+      setTotalPages(1)
+      setTotalItems(0)
       setError((err as Error).message)
     } finally {
       setLoading(false)
     }
-  }, [isAdmin])
+  }, [activeTab, currentPage, isAdmin, leaveTypeFilter, search])
 
   const loadEmployees = useCallback(async () => {
     if (!isAdmin) return
@@ -167,31 +181,9 @@ export default function LeaveRequestPage() {
     void loadAdminBalances()
   }, [loadAdminBalances])
 
-  const tabCounts = useMemo(() => {
-    return statusTabs.reduce<Record<string, number>>((acc, tab) => {
-      acc[tab.key] = requests.filter((r) => r.status === tab.key).length
-      return acc
-    }, {})
-  }, [requests])
-
-  const filtered = useMemo(() => {
-    return requests
-      .filter((r) => r.status === activeTab)
-      .filter((r) => {
-        if (!search.trim()) return true
-        const q = search.toLowerCase()
-        return `${r.employeeCode} ${r.employeeName} ${r.reason}`.toLowerCase().includes(q)
-      })
-      .filter((r) => leaveTypeFilter === 'ALL' || r.leaveTypeId === leaveTypeFilter)
-      .sort((a, b) => {
-        const byName = a.employeeName.localeCompare(b.employeeName, 'vi', { sensitivity: 'base' })
-        if (byName !== 0) return byName
-        return a.createdAt < b.createdAt ? 1 : -1
-      })
-  }, [activeTab, leaveTypeFilter, requests, search])
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
-  const pageRows = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [activeTab, leaveTypeFilter, search])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -320,7 +312,7 @@ export default function LeaveRequestPage() {
                 onClick={() => { setActiveTab(tab.key); setCurrentPage(1) }}
                 className={`px-3 py-1.5 rounded-md text-sm ${activeTab === tab.key ? 'bg-[#3d6b59] text-white' : 'bg-muted text-muted-foreground'}`}
               >
-                {tab.label} ({tabCounts[tab.key] || 0})
+                {tab.label}
               </button>
             ))}
           </div>
@@ -362,9 +354,9 @@ export default function LeaveRequestPage() {
               <TableBody>
                 {loading ? (
                   <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Đang tải dữ liệu...</TableCell></TableRow>
-                ) : pageRows.length === 0 ? (
+                ) : requests.length === 0 ? (
                   <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Không có dữ liệu</TableCell></TableRow>
-                ) : pageRows.map((row) => (
+                ) : requests.map((row) => (
                   <Fragment key={row.id}>
                     <TableRow className="cursor-pointer" onClick={() => setExpanded((prev) => (prev === row.id ? null : row.id))}>
                       <TableCell>{expanded === row.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</TableCell>
@@ -408,7 +400,7 @@ export default function LeaveRequestPage() {
 
           <div className="flex items-center justify-between px-2 py-2 border-t">
             <span className="text-sm text-muted-foreground">
-              Hiển thị {filtered.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, filtered.length)} trong {filtered.length} đơn
+              Hiển thị {totalItems === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, totalItems)} trong {totalItems} đơn
             </span>
             <div className="flex items-center gap-1">
               <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Wallet, Calendar, AlertCircle } from 'lucide-react';
+import { Wallet, Calendar, AlertCircle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Button } from '../../components/ui/button';
 import { payrollApi } from '../../lib/api/payrollApi';
 import type { PayrollResponse } from '../../types/payroll';
 import PayrollStatusBadge from '../../components/payroll/PayrollStatusBadge';
@@ -9,8 +10,12 @@ const formatCurrency = (amount: number) => {
 };
 
 export default function MyPayrollPage() {
+  const PAGE_SIZE = 10;
   const [payrolls, setPayrolls] = useState<PayrollResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
   useEffect(() => {
     // Lấy ID nhân viên từ tài khoản đang đăng nhập
@@ -18,21 +23,33 @@ export default function MyPayrollPage() {
 
     const fetchMyPayrolls = async () => {
       try {
-        const res = await payrollApi.getPayrollsByEmployee(currentEmployeeId);
+        const res = await payrollApi.getPayrollsByEmployee(currentEmployeeId, {
+          status: 'APPROVED',
+          page: currentPage - 1,
+          size: PAGE_SIZE,
+          sortBy: 'month',
+          sortDir: 'desc',
+        });
         if (res.success) {
-          // Chỉ hiển thị các phiếu lương đã được duyệt (APPROVED) cho nhân viên xem
-          const visiblePayrolls = res.data.filter(p => p.status === 'APPROVED');
-          setPayrolls(visiblePayrolls);
+          setPayrolls(res.data.content);
+          setTotalPages(Math.max(1, res.data.totalPages));
+          setTotalItems(res.data.totalElements);
         }
       } catch (err) {
         console.error("Lỗi lấy lịch sử lương", err);
+        setPayrolls([]);
+        setTotalItems(0);
+        setTotalPages(1);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchMyPayrolls();
-  }, []);
+  }, [currentPage]);
+
+  const startItem = totalItems === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+  const endItem = Math.min(currentPage * PAGE_SIZE, totalItems);
 
   return (
     <div className="flex flex-col h-full bg-gray-50 p-6 overflow-auto">
@@ -60,6 +77,7 @@ export default function MyPayrollPage() {
             <p className="text-gray-500">Do chưa có bảng lương nào được duyệt trong thời gian làm việc của bạn.</p>
           </div>
         ) : (
+          <>
           <div className="grid gap-6">
             {payrolls.map(payroll => (
               <div key={payroll.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -144,6 +162,28 @@ export default function MyPayrollPage() {
               </div>
             ))}
           </div>
+
+          <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center justify-between">
+            <span className="text-sm text-gray-500">
+              Hiển thị {startItem}-{endItem} trong {totalItems} phiếu lương
+            </span>
+            <div className="flex items-center gap-1">
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
+                <ChevronsLeft className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))} disabled={currentPage === 1}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="px-3 text-sm">Trang {currentPage} / {totalPages}</span>
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>
+                <ChevronsRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          </>
         )}
       </div>
     </div>

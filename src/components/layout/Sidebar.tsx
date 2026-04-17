@@ -4,18 +4,22 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { cn } from '../../lib/utils'
 import { useAuth } from '../../context/useAuth'
 
-const mainNavItems = [
-  { to: '/', label: 'Trang chủ', icon: LayoutGrid },
-  { to: '/employees', label: 'Danh sách nhân viên', icon: Users },
+const adminMainNavItems = [
+  { to: '/admin', label: 'Dashboard', icon: LayoutGrid },
+  { to: '/admin/employees', label: 'Danh sách nhân viên', icon: Users },
+]
+
+const employeeMainNavItems = [
+  { to: '/attendance/daily', label: 'Dashboard', icon: LayoutGrid },
 ]
 
 const attendanceMenu = {
   label: 'Quản lý chấm công',
   icon: Clock,
   children: [
-    { to: '/attendance/daily', label: 'Công ngày' },
-    { to: '/attendance/monthly', label: 'Công tháng' },
-    { to: '/attendance/overtime', label: 'Đăng ký tăng ca' },
+    { to: '/admin/attendance/daily', label: 'Công ngày' },
+    { to: '/admin/attendance/monthly', label: 'Công tháng' },
+    { to: '/admin/attendance/overtime', label: 'Đăng ký tăng ca' },
   ],
 }
 
@@ -23,8 +27,8 @@ const leaveMenu = {
   label: 'Quản lý đơn xin nghỉ',
   icon: FileText,
   children: [
-    { to: '/attendance/leave-request', label: 'Đơn xin nghỉ' },
-    { to: '/attendance/absence', label: 'Quản lý vắng' },
+    { to: '/admin/attendance/leave-request', label: 'Đơn xin nghỉ' },
+    { to: '/admin/attendance/absence', label: 'Quản lý vắng' },
   ],
 }
 
@@ -33,7 +37,7 @@ const payrollMenu = {
   icon: Wallet,
   children: [
     { to: '/payroll/my-salary', label: 'Lương của tôi' },
-    { to: '/payroll/manage', label: 'Quản lý phiếu lương (Admin)' },
+    { to: '/admin/payroll/manage', label: 'Quản lý phiếu lương (Admin)' },
   ],
 }
 
@@ -43,13 +47,32 @@ export default function Sidebar() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, logout } = useAuth()
+  const isAdmin = user?.role === 'ADMIN'
+  const mainNavItems = isAdmin ? adminMainNavItems : employeeMainNavItems
+  const visibleMenus = allMenus
+    .map((menu) => ({
+      ...menu,
+      children: menu.children.filter((child) => {
+        if (child.to.includes('/admin/')) {
+          return isAdmin
+        }
+        return true
+      }),
+    }))
+    .filter((menu) => menu.children.length > 0)
+
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {}
-    allMenus.forEach(m => { initial[m.label] = m.children.some(c => location.pathname.startsWith(c.to)) })
+    visibleMenus.forEach(m => { initial[m.label] = m.children.some(c => location.pathname.startsWith(c.to)) })
     return initial
   })
 
-  const isActive = (to: string) => location.pathname === to
+  const isActive = (to: string) => {
+    if (to === '/admin') {
+      return location.pathname === '/admin'
+    }
+    return location.pathname === to
+  }
   const isParentActive = (menu: typeof attendanceMenu) => menu.children.some(c => location.pathname.startsWith(c.to))
   const toggleMenu = (label: string) => setExpandedMenus(prev => ({ ...prev, [label]: !prev[label] }))
 
@@ -89,7 +112,7 @@ export default function Sidebar() {
           </Link>
         ))}
 
-        {allMenus.map(menu => (
+        {visibleMenus.map(menu => (
           <div key={menu.label}>
             <button
               onClick={() => toggleMenu(menu.label)}
@@ -141,7 +164,7 @@ export default function Sidebar() {
           className="w-full flex items-center gap-2 px-2 py-2 rounded-md text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground"
         >
           <LogOut className="h-4 w-4" />
-          Dang xuat
+          Đăng xuất
         </button>
       </div>
     </aside>

@@ -1,10 +1,12 @@
 import { apiClient, unwrapResponse } from './apiClient'
 import type {
-  AttendanceQueryRange,
+  AttendanceListQuery,
   AttendanceRecordDto,
   AttendanceUpdatePayload,
+  DailyAttendanceQuery,
   MonthlyStatsDto,
 } from '../types/attendance'
+import type { PageData } from '../types/api'
 
 export const attendanceService = {
   checkIn() {
@@ -16,15 +18,15 @@ export const attendanceService = {
   getToday() {
     return unwrapResponse<AttendanceRecordDto>(apiClient.get('/attendance/today'))
   },
-  getMyRecords(range: AttendanceQueryRange) {
-    return unwrapResponse<AttendanceRecordDto[]>(apiClient.get('/attendance/my-records', { params: range }))
+  getMyRecords(query: AttendanceListQuery) {
+    return unwrapResponse<PageData<AttendanceRecordDto>>(apiClient.get('/attendance/my-records', { params: query }))
   },
-  getDaily(date: string) {
-    return unwrapResponse<AttendanceRecordDto[]>(apiClient.get('/attendance/daily', { params: { date } }))
+  getDaily(query: DailyAttendanceQuery) {
+    return unwrapResponse<PageData<AttendanceRecordDto>>(apiClient.get('/attendance/daily', { params: query }))
   },
-  getEmployeeRecords(employeeId: number, range: AttendanceQueryRange) {
-    return unwrapResponse<AttendanceRecordDto[]>(
-      apiClient.get(`/attendance/employee/${employeeId}`, { params: range }),
+  getEmployeeRecords(employeeId: number, query: AttendanceListQuery) {
+    return unwrapResponse<PageData<AttendanceRecordDto>>(
+      apiClient.get(`/attendance/employee/${employeeId}`, { params: query }),
     )
   },
   getMonthlyStats(employeeId: number, month: number, year: number) {

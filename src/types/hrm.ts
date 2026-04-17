@@ -12,6 +12,9 @@ export interface EmployeeDto {
   departmentName?: string | null
   status: string
   resignationDate?: string | null
+  currentSalary?: number | null
+  latestNetSalary?: number | null
+  lastPayrollMonth?: string | null
   createdAt?: string
   updatedAt?: string
   generatedAccount?: AccountInfo | null
@@ -38,6 +41,7 @@ export interface EmployeeUpsertPayload {
 export interface EmployeeListQuery {
   keyword?: string
   status?: string
+  departmentId?: number
   page?: number
   size?: number
   sortBy?: string

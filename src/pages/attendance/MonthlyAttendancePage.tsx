@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Calendar, RefreshCw, FileDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
@@ -48,6 +48,8 @@ export default function MonthlyAttendancePage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
 
   useEffect(() => {
     const loadEmployees = async () => {
@@ -78,23 +80,41 @@ export default function MonthlyAttendancePage() {
         }
 
         const [recordData, statsData] = await Promise.all([
-          attendanceService.getEmployeeRecords(employeeId, { from: range.from, to: range.to }),
+          attendanceService.getEmployeeRecords(employeeId, {
+            from: range.from,
+            to: range.to,
+            page: currentPage - 1,
+            size: PAGE_SIZE,
+            sortBy: 'date',
+            sortDir: 'desc',
+          }),
           attendanceService.getMonthlyStats(employeeId, range.month, range.year),
         ])
-        setRecords(recordData)
+        setRecords(recordData.content)
+        setTotalPages(Math.max(1, recordData.totalPages))
+        setTotalItems(recordData.totalElements)
         setStats(statsData)
       } else {
-        const data = await attendanceService.getMyRecords({ from: range.from, to: range.to })
-        setRecords(data)
+        const data = await attendanceService.getMyRecords({
+          from: range.from,
+          to: range.to,
+          page: currentPage - 1,
+          size: PAGE_SIZE,
+          sortBy: 'date',
+          sortDir: 'desc',
+        })
+        setRecords(data.content)
+        setTotalPages(Math.max(1, data.totalPages))
+        setTotalItems(data.totalElements)
 
-        const totalWorkDays = data.filter((r) => r.status !== 'ABSENT').length
-        const lateCount = data.filter((r) => r.status === 'LATE').length
-        const totalOvertimeHours = data.reduce((sum, r) => sum + Number(r.overtimeHours || 0), 0)
+        const totalWorkDays = data.content.filter((r) => r.status !== 'ABSENT').length
+        const lateCount = data.content.filter((r) => r.status === 'LATE').length
+        const totalOvertimeHours = data.content.reduce((sum, r) => sum + Number(r.overtimeHours || 0), 0)
 
         setStats({
-          employeeId: data[0]?.employeeId || 0,
-          employeeCode: data[0]?.employeeCode || '-',
-          employeeName: data[0]?.employeeName || user?.employeeName || user?.username || '-',
+          employeeId: data.content[0]?.employeeId || 0,
+          employeeCode: data.content[0]?.employeeCode || '-',
+          employeeName: data.content[0]?.employeeName || user?.employeeName || user?.username || '-',
           month: range.month,
           year: range.year,
           totalWorkDays,
@@ -102,34 +122,30 @@ export default function MonthlyAttendancePage() {
           totalOvertimeHours,
         })
       }
-
-      setCurrentPage(1)
     } catch (err) {
       setError((err as Error).message)
       setRecords([])
       setStats(null)
+      setTotalPages(1)
+      setTotalItems(0)
     } finally {
       setLoading(false)
     }
-  }, [employeeId, isAdmin, month, user?.employeeName, user?.username])
+  }, [employeeId, isAdmin, month, user?.employeeName, user?.username, currentPage])
 
   useEffect(() => {
     void loadData()
   }, [loadData])
 
-  const sortedRecords = useMemo(
-    () => [...records].sort((a, b) => (a.date > b.date ? 1 : -1)),
-    [records],
-  )
-
-  const totalPages = Math.max(1, Math.ceil(sortedRecords.length / PAGE_SIZE))
-  const pageRows = sortedRecords.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [month, employeeId])
 
   const handleExport = () => {
     const header = ['Ngày', 'Check-in', 'Check-out', 'Trạng thái', 'Giờ làm', 'Tăng ca', 'Ghi chú']
     const csvRows = [
       '\uFEFF' + header.join(','),
-      ...sortedRecords.map((r) => [
+      ...records.map((r) => [
         r.date,
         r.checkIn || '',
         r.checkOut || '',
@@ -236,9 +252,9 @@ export default function MonthlyAttendancePage() {
             <TableBody>
               {loading ? (
                 <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Đang tải dữ liệu...</TableCell></TableRow>
-              ) : pageRows.length === 0 ? (
+              ) : records.length === 0 ? (
                 <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Không có dữ liệu công tháng</TableCell></TableRow>
-              ) : pageRows.map((r) => (
+              ) : records.map((r) => (
                 <TableRow key={`${r.id || 'x'}-${r.employeeId}-${r.date}`}>
                   <TableCell>{formatDate(r.date)}</TableCell>
                   <TableCell>{r.checkIn?.slice(0, 5) || '-'}</TableCell>
@@ -255,7 +271,7 @@ export default function MonthlyAttendancePage() {
 
         <div className="flex items-center justify-between px-2 py-3 border-t bg-background">
           <span className="text-sm text-muted-foreground">
-            Hiển thị {sortedRecords.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, sortedRecords.length)} trong {sortedRecords.length} bản ghi
+            Hiển thị {totalItems === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, totalItems)} trong {totalItems} bản ghi
           </span>
           <div className="flex items-center gap-1">
             <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>

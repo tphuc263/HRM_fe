@@ -4,7 +4,9 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Checkbox } from '../../components/ui/checkbox';
 import { payrollApi } from '../../lib/api/payrollApi';
+import { departmentService } from '../../services/departmentService';
 import type { PayrollResponse, PayrollUpdateRequest } from '../../types/payroll';
+import type { DepartmentDto } from '../../types/hrm';
 import PayrollStatusBadge from '../../components/payroll/PayrollStatusBadge';
 import GeneratePayrollModal from '../../components/payroll/GeneratePayrollModal';
 import EditPayrollModal from '../../components/payroll/EditPayrollModal';
@@ -31,21 +33,38 @@ export default function PayrollListPage() {
   const defaultMonthStr = `${currentMonthDate.getFullYear()}-${String(currentMonthDate.getMonth() + 1).padStart(2, '0')}`;
   const [monthFilter, setMonthFilter] = useState(defaultMonthStr);
   const [searchQuery, setSearchQuery] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState<number | 'ALL'>('ALL');
+  const [sortBy, setSortBy] = useState<'employee.code' | 'employee.name' | 'basicSalary' | 'netSalary'>('employee.code');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [departments, setDepartments] = useState<DepartmentDto[]>([]);
   
   const [isLoading, setIsLoading] = useState(false);
 
   const fetchPayrolls = async () => {
     setIsLoading(true);
     try {
-      const res = await payrollApi.getPayrollsByMonth(monthFilter);
+      const res = await payrollApi.getPayrollsByMonth({
+        month: monthFilter,
+        keyword: searchQuery.trim() || undefined,
+        departmentId: departmentFilter === 'ALL' ? undefined : departmentFilter,
+        page: currentPage - 1,
+        size: PAGE_SIZE,
+        sortBy,
+        sortDir,
+      });
       if (res.success) {
-        setPayrolls(res.data);
+        setPayrolls(res.data.content);
+        setTotalPages(Math.max(1, res.data.totalPages));
+        setTotalItems(res.data.totalElements);
       }
     } catch (err) {
       console.error('Failed to fetch payrolls', err);
-      // Fallback cho UI khi chưa có BE
       setPayrolls([]);
+      setTotalPages(1);
+      setTotalItems(0);
     } finally {
       setIsLoading(false);
       setSelectedIds([]);
@@ -55,11 +74,24 @@ export default function PayrollListPage() {
   useEffect(() => {
     fetchPayrolls();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [monthFilter]);
+  }, [monthFilter, currentPage, searchQuery, departmentFilter, sortBy, sortDir]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [monthFilter, searchQuery]);
+  }, [monthFilter, searchQuery, departmentFilter, sortBy, sortDir]);
+
+  useEffect(() => {
+    const loadDepartments = async () => {
+      try {
+        const data = await departmentService.getAll();
+        setDepartments(data);
+      } catch {
+        setDepartments([]);
+      }
+    };
+
+    loadDepartments();
+  }, []);
 
   // Generators
   const handleGenerate = async (month: number, year: number, workDays: number, defaultAllowances: Record<string, number>, defaultDeductions: Record<string, number>) => {
@@ -143,14 +175,6 @@ export default function PayrollListPage() {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
 
-  const filteredPayrolls = payrolls.filter(p => 
-    p.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    p.employeeCode.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const totalItems = filteredPayrolls.length;
-  const totalPages = Math.ceil(totalItems / PAGE_SIZE) || 1;
-  const paginatedPayrolls = filteredPayrolls.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
   const startItem = totalItems === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
   const endItem = Math.min(currentPage * PAGE_SIZE, totalItems);
 
@@ -189,6 +213,34 @@ export default function PayrollListPage() {
                 className="pl-9 w-64"
               />
             </div>
+            <select
+              value={departmentFilter === 'ALL' ? 'ALL' : String(departmentFilter)}
+              onChange={(e) => setDepartmentFilter(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="ALL">Tất cả phòng ban</option>
+              {departments.map((department) => (
+                <option key={department.id} value={String(department.id)}>{department.name}</option>
+              ))}
+            </select>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as 'employee.code' | 'employee.name' | 'basicSalary' | 'netSalary')}
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="employee.code">Sắp xếp: Mã NV</option>
+              <option value="employee.name">Sắp xếp: Tên</option>
+              <option value="basicSalary">Sắp xếp: Lương cơ bản</option>
+              <option value="netSalary">Sắp xếp: Lương thực nhận</option>
+            </select>
+            <select
+              value={sortDir}
+              onChange={(e) => setSortDir(e.target.value as 'asc' | 'desc')}
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="asc">Tăng dần</option>
+              <option value="desc">Giảm dần</option>
+            </select>
           </div>
           <div className="flex items-center gap-3">
             {selectedIds.length > 0 && (
@@ -231,7 +283,7 @@ export default function PayrollListPage() {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {paginatedPayrolls.map(payroll => {
+              {payrolls.map(payroll => {
                 const isSelected = selectedIds.includes(payroll.id);
                 return (
                   <tr key={payroll.id} className={`hover:bg-gray-50 transition-colors ${isSelected ? 'bg-blue-50/50' : ''}`}>
@@ -284,7 +336,7 @@ export default function PayrollListPage() {
                 );
               })}
               
-              {!isLoading && filteredPayrolls.length === 0 && (
+              {!isLoading && payrolls.length === 0 && (
                 <tr>
                   <td colSpan={9} className="p-8 text-center text-gray-500">
                     <div className="flex flex-col items-center justify-center gap-2">

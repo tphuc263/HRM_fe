@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { RefreshCw, Search, FileDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
@@ -28,48 +28,63 @@ export default function OvertimeRegistrationPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
 
   const loadData = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
-      const data = isAdmin
-        ? await attendanceService.getDaily(date)
-        : await attendanceService.getMyRecords({ from: date, to: date })
-      setRows(data.filter((r) => Number(r.overtimeHours || 0) > 0))
-      setCurrentPage(1)
+      if (isAdmin) {
+        const data = await attendanceService.getDaily({
+          date,
+          keyword: search.trim() || undefined,
+          hasOvertime: true,
+          page: currentPage - 1,
+          size: PAGE_SIZE,
+          sortBy: 'employee.code',
+          sortDir: 'asc',
+        })
+        setRows(data.content)
+        setTotalPages(Math.max(1, data.totalPages))
+        setTotalItems(data.totalElements)
+      } else {
+        const data = await attendanceService.getMyRecords({
+          from: date,
+          to: date,
+          page: currentPage - 1,
+          size: PAGE_SIZE,
+          sortBy: 'date',
+          sortDir: 'desc',
+        })
+        const overtimeRows = data.content.filter((r) => Number(r.overtimeHours || 0) > 0)
+        setRows(overtimeRows)
+        setTotalPages(Math.max(1, data.totalPages))
+        setTotalItems(overtimeRows.length)
+      }
     } catch (err) {
       setRows([])
+      setTotalPages(1)
+      setTotalItems(0)
       setError((err as Error).message)
     } finally {
       setLoading(false)
     }
-  }, [date, isAdmin])
+  }, [date, isAdmin, currentPage, search])
 
   useEffect(() => {
     void loadData()
   }, [loadData])
 
-  const filteredRows = useMemo(() => {
-    let data = rows
-    if (search.trim()) {
-      const keyword = search.toLowerCase()
-      data = rows.filter((r) =>
-        `${r.employeeCode} ${r.employeeName} ${r.status || ''}`.toLowerCase().includes(keyword),
-      )
-    }
-
-    return [...data].sort((a, b) => a.employeeName.localeCompare(b.employeeName, 'vi', { sensitivity: 'base' }))
-  }, [rows, search])
-
-  const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE))
-  const pageRows = filteredRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [date, search])
 
   const handleExport = () => {
     const header = ['Mã nhân viên', 'Họ tên', 'Ngày', 'Số giờ OT', 'Giờ làm', 'Trạng thái']
     const csvRows = [
       '\uFEFF' + header.join(','),
-      ...filteredRows.map((row) => [
+      ...rows.map((row) => [
         row.employeeCode,
         row.employeeName,
         row.date,
@@ -120,9 +135,9 @@ export default function OvertimeRegistrationPage() {
             <TableBody>
               {loading ? (
                 <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Đang tải dữ liệu...</TableCell></TableRow>
-              ) : pageRows.length === 0 ? (
+              ) : rows.length === 0 ? (
                 <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Không có dữ liệu tăng ca</TableCell></TableRow>
-              ) : pageRows.map(row => (
+              ) : rows.map(row => (
                 <TableRow key={`${row.id || 'x'}-${row.employeeId}-${row.date}`}>
                   <TableCell className="font-medium">{row.employeeCode}</TableCell>
                   <TableCell className="font-medium">{row.employeeName}</TableCell>
@@ -138,7 +153,7 @@ export default function OvertimeRegistrationPage() {
 
         <div className="flex items-center justify-between px-2 py-3 border-t bg-background">
           <span className="text-sm text-muted-foreground">
-            Hiển thị {filteredRows.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, filteredRows.length)} trong {filteredRows.length} bản ghi
+            Hiển thị {totalItems === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, totalItems)} trong {totalItems} bản ghi
           </span>
           <div className="flex items-center gap-1">
             <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>

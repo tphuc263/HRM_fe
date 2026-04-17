@@ -28,6 +28,9 @@ const PAGE_SIZE = 10
 type FilterState = {
   search: string
   status: string
+  departmentId: number | 'ALL'
+  sortField: 'NAME' | 'SALARY'
+  sortDirection: 'asc' | 'desc'
 }
 
 type EmployeeFormMode = 'create' | 'edit'
@@ -35,6 +38,9 @@ type EmployeeFormMode = 'create' | 'edit'
 const defaultFilters: FilterState = {
   search: '',
   status: 'ALL',
+  departmentId: 'ALL',
+  sortField: 'NAME',
+  sortDirection: 'asc',
 }
 
 const statusOptions = [
@@ -62,6 +68,15 @@ function formatDate(value?: string | null) {
   return date.toLocaleDateString('vi-VN')
 }
 
+function formatCurrency(value?: number | null) {
+  if (value == null) return '-'
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+    maximumFractionDigits: 0,
+  }).format(value)
+}
+
 function statusLabel(status: string) {
   if (status === 'ACTIVE') return 'Đang làm việc'
   if (status === 'RESIGNED') return 'Nghỉ việc'
@@ -72,6 +87,7 @@ function toApiQuery(filters: FilterState, currentPage: number): EmployeeListQuer
   return {
     keyword: filters.search || undefined,
     status: filters.status === 'ALL' ? undefined : filters.status,
+    departmentId: filters.departmentId === 'ALL' ? undefined : filters.departmentId,
     page: currentPage - 1,
     size: PAGE_SIZE,
     sortBy: 'name',
@@ -151,6 +167,19 @@ export default function EmployeeListPage() {
   const [detailLoading, setDetailLoading] = useState(false)
 
   const query = useMemo(() => toApiQuery(filters, currentPage), [filters, currentPage])
+  const sortedEmployees = useMemo(() => {
+    if (filters.sortField === 'NAME') {
+      const byName = [...employees].sort((a, b) => a.name.localeCompare(b.name, 'vi', { sensitivity: 'base' }))
+      return filters.sortDirection === 'asc' ? byName : byName.reverse()
+    }
+
+    const bySalary = [...employees].sort((a, b) => {
+      const salaryA = a.currentSalary ?? a.latestNetSalary ?? 0
+      const salaryB = b.currentSalary ?? b.latestNetSalary ?? 0
+      return salaryA - salaryB
+    })
+    return filters.sortDirection === 'asc' ? bySalary : bySalary.reverse()
+  }, [employees, filters.sortDirection, filters.sortField])
 
   const loadDepartments = useCallback(async () => {
     try {
@@ -193,11 +222,11 @@ export default function EmployeeListPage() {
   const selectedCount = selectedIds.length
 
   const toggleSelectAll = () => {
-    if (selectedIds.length === employees.length) {
+    if (selectedIds.length === sortedEmployees.length) {
       setSelectedIds([])
       return
     }
-    setSelectedIds(employees.map((e) => e.id))
+    setSelectedIds(sortedEmployees.map((e) => e.id))
   }
 
   const toggleSelect = (id: number) => {
@@ -373,17 +402,31 @@ export default function EmployeeListPage() {
       }
 
       const rows: string[][] = [
-        ['Mã nhân viên', 'Họ và tên', 'Email', 'Điện thoại', 'Phòng ban', 'Trạng thái', 'Ngày vào làm', 'Ngày nghỉ việc'],
-        ...exportRows.map((emp) => [
+        ['Mã nhân viên', 'Họ và tên', 'Email', 'Điện thoại', 'Phòng ban', 'Trạng thái', 'Lương hiện tại', 'Lương kỳ gần nhất', 'Kỳ lương gần nhất', 'Ngày vào làm', 'Ngày nghỉ việc'],
+        ...[...exportRows]
+          .sort((a, b) => {
+            if (filters.sortField === 'NAME') {
+              const comparison = a.name.localeCompare(b.name, 'vi', { sensitivity: 'base' })
+              return filters.sortDirection === 'asc' ? comparison : -comparison
+            }
+            const salaryA = a.currentSalary ?? a.latestNetSalary ?? 0
+            const salaryB = b.currentSalary ?? b.latestNetSalary ?? 0
+            const comparison = salaryA - salaryB
+            return filters.sortDirection === 'asc' ? comparison : -comparison
+          })
+          .map((emp) => [
           emp.code,
           emp.name,
           emp.email || '',
           emp.phone || '',
           emp.departmentName || '',
           statusLabel(emp.status),
+          emp.currentSalary != null ? String(emp.currentSalary) : '',
+          emp.latestNetSalary != null ? String(emp.latestNetSalary) : '',
+          emp.lastPayrollMonth || '',
           emp.joinDate || '',
           emp.resignationDate || '',
-        ]),
+          ]),
       ]
 
       const dateLabel = new Date().toISOString().slice(0, 10)
@@ -424,6 +467,57 @@ export default function EmployeeListPage() {
               {statusOptions.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground whitespace-nowrap">Phòng ban</span>
+          <Select
+            value={draftFilters.departmentId === 'ALL' ? 'ALL' : String(draftFilters.departmentId)}
+            onValueChange={(value) =>
+              setDraftFilters((prev) => ({
+                ...prev,
+                departmentId: value === 'ALL' ? 'ALL' : Number(value),
+              }))
+            }
+          >
+            <SelectTrigger className="w-48 h-8">
+              <SelectValue placeholder="Phòng ban" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Tất cả phòng ban</SelectItem>
+              {departments.map((department) => (
+                <SelectItem key={department.id} value={String(department.id)}>{department.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground whitespace-nowrap">Sắp xếp</span>
+          <Select
+            value={draftFilters.sortField}
+            onValueChange={(value) => setDraftFilters((prev) => ({ ...prev, sortField: value as 'NAME' | 'SALARY' }))}
+          >
+            <SelectTrigger className="w-44 h-8">
+              <SelectValue placeholder="Trường sắp xếp" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="NAME">Theo tên</SelectItem>
+              <SelectItem value="SALARY">Theo lương cơ bản</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select
+            value={draftFilters.sortDirection}
+            onValueChange={(value) => setDraftFilters((prev) => ({ ...prev, sortDirection: value as 'asc' | 'desc' }))}
+          >
+            <SelectTrigger className="w-36 h-8">
+              <SelectValue placeholder="Chiều" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="asc">Tăng dần</SelectItem>
+              <SelectItem value="desc">Giảm dần</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -470,7 +564,7 @@ export default function EmployeeListPage() {
             <tr>
               <th className="w-10 p-3 text-center">
                 <Checkbox
-                  checked={employees.length > 0 && selectedIds.length === employees.length}
+                  checked={sortedEmployees.length > 0 && selectedIds.length === sortedEmployees.length}
                   onCheckedChange={toggleSelectAll}
                   disabled={!isAdmin}
                 />
@@ -480,12 +574,13 @@ export default function EmployeeListPage() {
               <th className="p-3 text-left font-medium text-foreground">Phòng ban</th>
               <th className="p-3 text-left font-medium text-foreground">Email</th>
               <th className="p-3 text-left font-medium text-foreground">Trạng thái</th>
+              <th className="p-3 text-left font-medium text-foreground">Lương</th>
               <th className="p-3 text-left font-medium text-foreground">Ngày vào làm</th>
               <th className="p-3 text-left font-medium text-foreground">Thao tác</th>
             </tr>
           </thead>
           <tbody>
-            {!loading && employees.map((emp) => {
+            {!loading && sortedEmployees.map((emp) => {
               const isSelected = selectedIds.includes(emp.id)
               return (
                 <tr
@@ -514,6 +609,13 @@ export default function EmployeeListPage() {
                   <td className="p-3 text-foreground">{emp.departmentName || '-'}</td>
                   <td className="p-3 text-muted-foreground">{emp.email || '-'}</td>
                   <td className="p-3 text-foreground">{statusLabel(emp.status)}</td>
+                  <td className="p-3 text-muted-foreground">
+                    <div>{formatCurrency(emp.currentSalary)}</div>
+                    <div className="text-xs text-muted-foreground">
+                      Kỳ gần nhất: {formatCurrency(emp.latestNetSalary)}
+                      {emp.lastPayrollMonth ? ` (${emp.lastPayrollMonth})` : ''}
+                    </div>
+                  </td>
                   <td className="p-3 text-muted-foreground">{formatDate(emp.joinDate)}</td>
                   <td className="p-3">
                     <div className="flex items-center gap-1">
@@ -539,7 +641,7 @@ export default function EmployeeListPage() {
 
             {loading && (
               <tr>
-                <td colSpan={8} className="p-12 text-center text-muted-foreground">
+                <td colSpan={9} className="p-12 text-center text-muted-foreground">
                   Đang tải dữ liệu nhân viên...
                 </td>
               </tr>
@@ -547,7 +649,7 @@ export default function EmployeeListPage() {
 
             {!loading && employees.length === 0 && (
               <tr>
-                <td colSpan={8} className="p-12 text-center text-muted-foreground">
+                <td colSpan={9} className="p-12 text-center text-muted-foreground">
                   Không có dữ liệu nhân viên
                 </td>
               </tr>
