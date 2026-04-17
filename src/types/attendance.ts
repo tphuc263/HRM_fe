@@ -62,3 +62,29 @@ export interface DailyAttendanceQuery {
   sortBy?: string
   sortDir?: 'asc' | 'desc'
 }
+
+export interface OvertimeRequestResponse {
+  id: number
+  employeeId: number
+  employeeCode: string
+  employeeName: string
+  date: string
+  startTime: string
+  endTime: string
+  hours: number
+  reason: string
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED'
+  approvedByName?: string
+  approvedAt?: string
+  rejectionReason?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface OvertimeRequestRequest {
+  date: string
+  startTime: string
+  endTime: string
+  reason: string
+}
+

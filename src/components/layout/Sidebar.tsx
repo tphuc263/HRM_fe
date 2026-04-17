@@ -11,6 +11,7 @@ const adminMainNavItems = [
 
 const employeeMainNavItems = [
   { to: '/attendance/daily', label: 'Dashboard', icon: LayoutGrid },
+  { to: '/attendance/overtime', label: 'Đăng ký tăng ca', icon: Clock },
 ]
 
 const attendanceMenu = {
@@ -19,7 +20,7 @@ const attendanceMenu = {
   children: [
     { to: '/admin/attendance/daily', label: 'Công ngày' },
     { to: '/admin/attendance/monthly', label: 'Công tháng' },
-    { to: '/admin/attendance/overtime', label: 'Đăng ký tăng ca' },
+    { to: '/attendance/overtime', label: 'Đăng ký tăng ca' },
   ],
 }
 
@@ -53,8 +54,11 @@ export default function Sidebar() {
     .map((menu) => ({
       ...menu,
       children: menu.children.filter((child) => {
-        if (child.to.includes('/admin/')) {
-          return isAdmin
+        // Nếu là User, lọc bỏ các mục bắt đầu bằng /admin/
+        // Và cũng lọc bỏ mục /attendance/overtime vì đã đưa ra ngoài mainNavItems
+        if (!isAdmin) {
+          if (child.to.includes('/admin/')) return false
+          if (child.to === '/attendance/overtime') return false
         }
         return true
       }),
