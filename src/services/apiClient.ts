@@ -9,6 +9,17 @@ export const apiClient = axios.create({
   timeout: 15000,
 })
 
+function parseApiError(error: unknown): string {
+  if (axios.isAxiosError(error)) {
+    const message = (error.response?.data as { message?: string } | undefined)?.message
+    if (message) {
+      return message
+    }
+  }
+
+  return (error as Error)?.message || 'Yeu cau that bai'
+}
+
 apiClient.interceptors.request.use((config) => {
   const token = tokenStorage.get()
   if (token) {
@@ -31,9 +42,13 @@ apiClient.interceptors.response.use(
 )
 
 export async function unwrapResponse<T>(promise: Promise<{ data: ApiResponse<T> }>): Promise<T> {
-  const response = await promise
-  if (!response.data.success) {
-    throw new Error(response.data.message || 'Yeu cau that bai')
+  try {
+    const response = await promise
+    if (!response.data.success) {
+      throw new Error(response.data.message || 'Yeu cau that bai')
+    }
+    return response.data.data
+  } catch (error) {
+    throw new Error(parseApiError(error))
   }
-  return response.data.data
 }

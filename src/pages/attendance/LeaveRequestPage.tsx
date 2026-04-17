@@ -1,226 +1,331 @@
-import { useState, useMemo } from 'react'
-import { Search, Plus, Copy, Trash2, FileDown, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ChevronDownIcon } from 'lucide-react'
-import { Checkbox } from '../../components/ui/checkbox'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { ChevronDown, ChevronUp, Loader2, Plus, Search } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
+import { leaveService } from '../../services/leaveService'
+import type { LeaveRequestCreatePayload, LeaveRequestDto, LeaveTypeDto } from '../../types/leave'
+import { useAuth } from '../../context/useAuth'
 
-type LeaveStatus = 'pending' | 'approved' | 'rejected'
+type UiLeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED'
 
-interface LeaveRequest {
-  id: number
-  employeeCode: string
-  fullName: string
-  department: string
-  leaveType: string
-  startDate: string
-  endDate: string
-  days: number
-  reason: string
-  status: LeaveStatus
-  submittedAt: string
+const statusTabs: Array<{ key: UiLeaveStatus; label: string }> = [
+  { key: 'PENDING', label: 'Cho duyet' },
+  { key: 'APPROVED', label: 'Da duyet' },
+  { key: 'REJECTED', label: 'Tu choi' },
+  { key: 'CANCELLED', label: 'Da huy' },
+]
+
+function statusLabel(status: string) {
+  const map: Record<string, string> = {
+    PENDING: 'Cho duyet',
+    APPROVED: 'Da duyet',
+    REJECTED: 'Tu choi',
+    CANCELLED: 'Da huy',
+  }
+  return map[status] || status
 }
 
-const mockData: LeaveRequest[] = [
-  { id: 1, employeeCode: '0000001', fullName: 'Đinh Lê', department: 'Phòng may 1', leaveType: 'Nghỉ phép', startDate: '2025-09-15', endDate: '2025-09-15', days: 1, reason: 'Việc gia đình', status: 'pending', submittedAt: '2025-09-10 08:00' },
-  { id: 2, employeeCode: '0000002', fullName: 'Nguyễn Văn A', department: 'Phòng IT', leaveType: 'Nghỉ phép', startDate: '2025-09-16', endDate: '2025-09-18', days: 3, reason: 'Du lịch', status: 'pending', submittedAt: '2025-09-12 09:30' },
-  { id: 3, employeeCode: '0000003', fullName: 'Trần Thị B', department: 'Phòng HC', leaveType: 'Nghỉ không lương', startDate: '2025-09-01', endDate: '2025-09-05', days: 5, reason: 'Việc riêng', status: 'approved', submittedAt: '2025-08-28 14:20' },
-  { id: 4, employeeCode: '0000004', fullName: 'Lê Văn C', department: 'Phòng kế toán', leaveType: 'Nghỉ phép', startDate: '2025-08-25', endDate: '2025-08-25', days: 1, reason: 'Khám bệnh', status: 'rejected', submittedAt: '2025-08-20 10:00' },
-  { id: 5, employeeCode: '0000005', fullName: 'Phạm Thị D', department: 'Phòng kinh doanh', leaveType: 'Nghỉ thai sản', startDate: '2025-10-01', endDate: '2025-12-31', days: 92, reason: 'Thai sản', status: 'approved', submittedAt: '2025-09-01 08:00' },
-  { id: 6, employeeCode: '0000006', fullName: 'Hoàng Văn E', department: 'Phòng kỹ thuật', leaveType: 'Nghỉ phép', startDate: '2025-09-20', endDate: '2025-09-22', days: 3, reason: 'Nghỉ lễ', status: 'pending', submittedAt: '2025-09-15 11:00' },
-  { id: 7, employeeCode: '0000007', fullName: 'Đặng Thị F', department: 'Phòng nhân sự', leaveType: 'Nghỉ không lương', startDate: '2025-08-15', endDate: '2025-08-17', days: 3, reason: 'Việc gia đình', status: 'rejected', submittedAt: '2025-08-10 16:00' },
-  { id: 8, employeeCode: '0000008', fullName: 'Vũ Văn G', department: 'Phòng sản xuất', leaveType: 'Nghỉ phép', startDate: '2025-09-05', endDate: '2025-09-07', days: 3, reason: 'Du lịch', status: 'approved', submittedAt: '2025-09-01 09:00' },
-]
+function badgeClass(status: string) {
+  if (status === 'PENDING') return 'bg-yellow-100 text-yellow-700'
+  if (status === 'APPROVED') return 'bg-green-100 text-green-700'
+  if (status === 'REJECTED') return 'bg-red-100 text-red-700'
+  return 'bg-slate-100 text-slate-700'
+}
 
-const statusTabs: { key: LeaveStatus; label: string; count: number }[] = [
-  { key: 'pending', label: 'Chờ duyệt', count: 0 },
-  { key: 'approved', label: 'Đã duyệt', count: 0 },
-  { key: 'rejected', label: 'Từ chối', count: 0 },
-]
-
-type SortKey = 'employeeCode' | 'fullName' | 'department' | 'startDate' | 'days' | 'submittedAt'
-type SortDir = 'asc' | 'desc'
+function formatDate(value: string) {
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return value
+  return d.toLocaleDateString('vi-VN')
+}
 
 export default function LeaveRequestPage() {
-  const [activeTab, setActiveTab] = useState<LeaveStatus>('pending')
-  const [selected, setSelected] = useState<number[]>([])
-  const [search, setSearch] = useState('')
-  const [department, setDepartment] = useState('Tất cả')
-  const [leaveType, setLeaveType] = useState('Tất cả')
-  const [sortKey, setSortKey] = useState<SortKey>('submittedAt')
-  const [sortDir, setSortDir] = useState<SortDir>('desc')
-  const [expanded, setExpanded] = useState<number | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
-  const pageSize = 10
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'ADMIN'
 
-  const tabs = useMemo(() => {
-    return statusTabs.map(t => ({
-      ...t,
-      count: mockData.filter(d => d.status === t.key).length,
-    }))
+  const [activeTab, setActiveTab] = useState<UiLeaveStatus>('PENDING')
+  const [expanded, setExpanded] = useState<number | null>(null)
+  const [requests, setRequests] = useState<LeaveRequestDto[]>([])
+  const [leaveTypes, setLeaveTypes] = useState<LeaveTypeDto[]>([])
+  const [search, setSearch] = useState('')
+  const [leaveTypeFilter, setLeaveTypeFilter] = useState<number | 'ALL'>('ALL')
+  const [loading, setLoading] = useState(false)
+  const [submitLoading, setSubmitLoading] = useState(false)
+  const [actionLoadingId, setActionLoadingId] = useState<number | null>(null)
+  const [error, setError] = useState('')
+
+  const [form, setForm] = useState<LeaveRequestCreatePayload>({
+    leaveTypeId: 0,
+    startDate: '',
+    endDate: '',
+    days: 1,
+    reason: '',
+    attachmentUrl: '',
+  })
+
+  const loadTypes = useCallback(async () => {
+    try {
+      const data = await leaveService.getLeaveTypes()
+      setLeaveTypes(data)
+      setForm((prev) => ({ ...prev, leaveTypeId: prev.leaveTypeId || data[0]?.id || 0 }))
+    } catch {
+      setLeaveTypes([])
+    }
   }, [])
 
-  const filtered = useMemo(() => {
-    let data = mockData.filter(d => d.status === activeTab)
-    if (search) {
-      const q = search.toLowerCase()
-      data = data.filter(d =>
-        d.fullName.toLowerCase().includes(q) ||
-        d.employeeCode.toLowerCase().includes(q) ||
-        d.department.toLowerCase().includes(q)
-      )
+  const loadRequests = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      let data: LeaveRequestDto[]
+      if (isAdmin) {
+        data = await leaveService.getAllRequests()
+      } else {
+        data = await leaveService.getMyRequests()
+      }
+      setRequests(data)
+    } catch (err) {
+      setRequests([])
+      setError((err as Error).message)
+    } finally {
+      setLoading(false)
     }
-    if (department !== 'Tất cả') data = data.filter(d => d.department === department)
-    if (leaveType !== 'Tất cả') data = data.filter(d => d.leaveType === leaveType)
-    data = [...data].sort((a, b) => {
-      let cmp = 0
-      if (sortKey === 'employeeCode') cmp = a.employeeCode.localeCompare(b.employeeCode)
-      else if (sortKey === 'fullName') cmp = a.fullName.localeCompare(b.fullName)
-      else if (sortKey === 'department') cmp = a.department.localeCompare(b.department)
-      else if (sortKey === 'startDate') cmp = a.startDate.localeCompare(b.startDate)
-      else if (sortKey === 'days') cmp = a.days - b.days
-      else if (sortKey === 'submittedAt') cmp = a.submittedAt.localeCompare(b.submittedAt)
-      return sortDir === 'asc' ? cmp : -cmp
-    })
-    return data
-  }, [activeTab, search, department, leaveType, sortKey, sortDir])
+  }, [isAdmin])
 
-  const paginated = useMemo(() => {
-    const start = (currentPage - 1) * pageSize
-    return filtered.slice(start, start + pageSize)
-  }, [filtered, currentPage])
+  useEffect(() => {
+    void loadTypes()
+    void loadRequests()
+  }, [loadRequests, loadTypes])
 
-  const totalPages = Math.ceil(filtered.length / pageSize)
+  const tabCounts = useMemo(() => {
+    return statusTabs.reduce<Record<string, number>>((acc, tab) => {
+      acc[tab.key] = requests.filter((r) => r.status === tab.key).length
+      return acc
+    }, {})
+  }, [requests])
 
-  const toggleAll = () => setSelected(selected.length === filtered.length ? [] : filtered.map(d => d.id))
-  const toggle = (id: number) => setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
-  const toggleExpand = (id: number) => setExpanded(prev => prev === id ? null : id)
+  const filtered = useMemo(() => {
+    return requests
+      .filter((r) => r.status === activeTab)
+      .filter((r) => {
+        if (!search.trim()) return true
+        const q = search.toLowerCase()
+        return `${r.employeeCode} ${r.employeeName} ${r.reason}`.toLowerCase().includes(q)
+      })
+      .filter((r) => leaveTypeFilter === 'ALL' || r.leaveTypeId === leaveTypeFilter)
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+  }, [activeTab, leaveTypeFilter, requests, search])
 
-  const handleSort = (key: SortKey) => {
-    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
-    else { setSortKey(key); setSortDir('asc') }
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setError('')
+
+    if (!form.leaveTypeId || !form.startDate || !form.endDate || !form.reason.trim()) {
+      setError('Vui long nhap day du thong tin don nghi')
+      return
+    }
+
+    setSubmitLoading(true)
+    try {
+      await leaveService.submitRequest({
+        ...form,
+        reason: form.reason.trim(),
+        attachmentUrl: form.attachmentUrl?.trim() || undefined,
+      })
+      setForm((prev) => ({ ...prev, reason: '', attachmentUrl: '', days: 1 }))
+      await loadRequests()
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setSubmitLoading(false)
+    }
   }
 
-  const renderSortIcon = (col: SortKey) => {
-    if (sortKey !== col) return null
-    return <ChevronDownIcon className={`h-3 w-3 inline ml-1 ${sortDir === 'asc' ? 'rotate-180' : ''}`} />
+  const handleApprove = async (id: number) => {
+    setActionLoadingId(id)
+    try {
+      await leaveService.approveRequest(id)
+      await loadRequests()
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setActionLoadingId(null)
+    }
+  }
+
+  const handleReject = async (id: number) => {
+    const reason = window.prompt('Nhap ly do tu choi:')
+    if (!reason?.trim()) return
+
+    setActionLoadingId(id)
+    try {
+      await leaveService.rejectRequest(id, reason.trim())
+      await loadRequests()
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setActionLoadingId(null)
+    }
+  }
+
+  const handleCancel = async (id: number) => {
+    setActionLoadingId(id)
+    try {
+      await leaveService.cancelRequest(id)
+      await loadRequests()
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setActionLoadingId(null)
+    }
   }
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <div className="bg-[#3d6b59] h-10 flex items-center px-4"><span className="text-white text-sm font-medium">TIME365</span></div>
-      <div className="p-6 overflow-auto flex-1">
-        <div className="mb-4"><h1 className="text-2xl font-semibold text-foreground">Quản lý đơn xin nghỉ</h1></div>
+      <div className="p-6 overflow-auto flex-1 space-y-4">
+        <div><h1 className="text-2xl font-semibold text-foreground">Quan ly don xin nghi</h1></div>
 
-        <div className="bg-white border rounded-md p-4 mb-4">
-          <div className="flex gap-4 mb-4">
-            {tabs.map(tab => (
+        <form className="bg-white border rounded-md p-4 space-y-4" onSubmit={handleSubmit}>
+          <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+            <Plus className="h-4 w-4" />
+            Tao don nghi moi
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+            <div>
+              <label className="text-xs text-muted-foreground">Loai nghi</label>
+              <select
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                value={form.leaveTypeId}
+                onChange={(e) => setForm((prev) => ({ ...prev, leaveTypeId: Number(e.target.value) }))}
+              >
+                {leaveTypes.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Tu ngay</label>
+              <Input type="date" value={form.startDate} onChange={(e) => setForm((prev) => ({ ...prev, startDate: e.target.value }))} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Den ngay</label>
+              <Input type="date" value={form.endDate} onChange={(e) => setForm((prev) => ({ ...prev, endDate: e.target.value }))} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">So ngay</label>
+              <Input type="number" min="0.5" step="0.5" value={form.days} onChange={(e) => setForm((prev) => ({ ...prev, days: Number(e.target.value) }))} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Attachment URL</label>
+              <Input value={form.attachmentUrl || ''} onChange={(e) => setForm((prev) => ({ ...prev, attachmentUrl: e.target.value }))} />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground">Ly do</label>
+            <Input value={form.reason} onChange={(e) => setForm((prev) => ({ ...prev, reason: e.target.value }))} />
+          </div>
+          <Button type="submit" disabled={submitLoading}>
+            {submitLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+            Gui don
+          </Button>
+        </form>
+
+        <div className="bg-white border rounded-md p-4 space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {statusTabs.map((tab) => (
               <button
                 key={tab.key}
-                onClick={() => { setActiveTab(tab.key); setCurrentPage(1); setSelected([]); setExpanded(null) }}
-                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  activeTab === tab.key
-                    ? 'bg-[#3d6b59] text-white'
-                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                }`}
+                onClick={() => setActiveTab(tab.key)}
+                className={`px-3 py-1.5 rounded-md text-sm ${activeTab === tab.key ? 'bg-[#3d6b59] text-white' : 'bg-muted text-muted-foreground'}`}
               >
-                {tab.label}
-                <span className={`text-xs px-1.5 py-0.5 rounded-full ${activeTab === tab.key ? 'bg-white/20 text-white' : 'bg-[#3d6b59]/10 text-[#3d6b59]'}`}>{tab.count}</span>
+                {tab.label} ({tabCounts[tab.key] || 0})
               </button>
             ))}
           </div>
 
-          <div className="grid grid-cols-4 gap-4 mb-4">
-            <div><label className="text-sm text-muted-foreground mb-1 block">Nhân viên</label>
-              <div className="relative"><Input placeholder="Nhập dữ liệu cần tìm kiếm" className="pr-8" value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1) }} /><Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="relative">
+              <Input placeholder="Tim ten/ma/ly do" className="pr-8" value={search} onChange={(e) => setSearch(e.target.value)} />
+              <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             </div>
-            <div><label className="text-sm text-muted-foreground mb-1 block">Phòng ban</label>
-              <select className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" value={department} onChange={e => { setDepartment(e.target.value); setCurrentPage(1) }}>
-                <option>Tất cả</option><option>Phòng may 1</option><option>Phòng IT</option><option>Phòng HC</option><option>Phòng kế toán</option><option>Phòng kinh doanh</option><option>Phòng kỹ thuật</option><option>Phòng nhân sự</option><option>Phòng sản xuất</option>
-              </select>
-            </div>
-            <div><label className="text-sm text-muted-foreground mb-1 block">Loại nghỉ</label>
-              <select className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" value={leaveType} onChange={e => { setLeaveType(e.target.value); setCurrentPage(1) }}>
-                <option>Tất cả</option><option>Nghỉ phép</option><option>Nghỉ không lương</option><option>Nghỉ thai sản</option><option>Nghỉ ốm</option>
-              </select>
-            </div>
-            <div><label className="text-sm text-muted-foreground mb-1 block">Ngày nộp</label><Input placeholder="dd/mm/yyyy" /></div>
-          </div>
-
-          <div className="flex gap-2">
-            <Button className="bg-[#3d6b59] hover:bg-[#3d6b59]/90"><Search className="h-4 w-4 mr-1" /> Tìm kiếm</Button>
-            <Button variant="outline"><Copy className="h-4 w-4 mr-1" /> Sao lưu</Button>
-            <Button variant="outline"><Trash2 className="h-4 w-4 mr-1" /> Xóa bỏ</Button>
-            <Button variant="outline"><FileDown className="h-4 w-4 mr-1" /> Báo cáo <ChevronDown className="h-4 w-4 ml-1" /></Button>
-            {activeTab === 'pending' && <Button className="bg-[#3d6b59] hover:bg-[#3d6b59]/90"><Plus className="h-4 w-4 mr-1" /> Phê duyệt</Button>}
-          </div>
-        </div>
-
-        <div className="bg-white border rounded-md overflow-auto">
-          <Table>
-            <TableHeader><TableRow className="bg-muted/50">
-              <TableHead className="w-10"></TableHead>
-              <TableHead className="w-10"><Checkbox checked={selected.length === filtered.length && filtered.length > 0} onCheckedChange={toggleAll} /></TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={() => handleSort('employeeCode')}>Mã nhân viên {renderSortIcon('employeeCode')}</TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={() => handleSort('fullName')}>Họ và tên {renderSortIcon('fullName')}</TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={() => handleSort('department')}>Phòng ban {renderSortIcon('department')}</TableHead>
-              <TableHead>Loại nghỉ</TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={() => handleSort('startDate')}>Ngày bắt đầu {renderSortIcon('startDate')}</TableHead>
-              <TableHead>Ngày kết thúc</TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={() => handleSort('days')}>Số ngày {renderSortIcon('days')}</TableHead>
-              <TableHead>Tình trạng</TableHead>
-            </TableRow></TableHeader>
-            <TableBody>
-              {paginated.length === 0 ? (
-                <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Không có dữ liệu</TableCell></TableRow>
-              ) : paginated.map(row => (
-                <><TableRow key={row.id} className={"cursor-pointer " + (selected.includes(row.id) ? "bg-primary/5" : "")} onClick={() => toggleExpand(row.id)}>
-                  <TableCell>{expanded === row.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</TableCell>
-                  <TableCell onClick={e => e.stopPropagation()}><Checkbox checked={selected.includes(row.id)} onCheckedChange={() => toggle(row.id)} /></TableCell>
-                  <TableCell className="font-medium">{row.employeeCode}</TableCell>
-                  <TableCell>{row.fullName}</TableCell>
-                  <TableCell>{row.department}</TableCell>
-                  <TableCell>{row.leaveType}</TableCell>
-                  <TableCell>{row.startDate}</TableCell>
-                  <TableCell>{row.endDate}</TableCell>
-                  <TableCell>{row.days}</TableCell>
-                  <TableCell>
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      row.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                      row.status === 'approved' ? 'bg-green-100 text-green-700' :
-                      'bg-red-100 text-red-700'
-                    }`}>
-                      {row.status === 'pending' ? 'Chờ duyệt' : row.status === 'approved' ? 'Đã duyệt' : 'Từ chối'}
-                    </span>
-                  </TableCell>
-                </TableRow>
-                {expanded === row.id && (
-                  <TableRow className="bg-muted/20">
-                    <TableCell colSpan={10} className="px-8 py-3">
-                      <div className="grid grid-cols-3 gap-4 text-sm">
-                        <div><span className="font-medium text-muted-foreground">Lý do:</span> {row.reason}</div>
-                        <div><span className="font-medium text-muted-foreground">Ngày nộp:</span> {row.submittedAt}</div>
-                        <div><span className="font-medium text-muted-foreground">Mã nhân viên:</span> {row.employeeCode}</div>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}</>
+            <select
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+              value={leaveTypeFilter}
+              onChange={(e) => setLeaveTypeFilter(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
+            >
+              <option value="ALL">Tat ca loai nghi</option>
+              {leaveTypes.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
               ))}
-            </TableBody>
-          </Table>
-        </div>
-
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
-            <span>Trang {currentPage} / {totalPages} ({filtered.length} kết quả)</span>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4" /></Button>
-              <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}><ChevronRight className="h-4 w-4" /></Button>
-            </div>
+            </select>
           </div>
-        )}
+
+          {error && <p className="text-sm text-destructive">{error}</p>}
+
+          <div className="border rounded-md overflow-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="w-10" />
+                  <TableHead>Ma NV</TableHead>
+                  <TableHead>Ho ten</TableHead>
+                  <TableHead>Loai nghi</TableHead>
+                  <TableHead>Tu ngay</TableHead>
+                  <TableHead>Den ngay</TableHead>
+                  <TableHead>So ngay</TableHead>
+                  <TableHead>Trang thai</TableHead>
+                  <TableHead>Thao tac</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Dang tai du lieu...</TableCell></TableRow>
+                ) : filtered.length === 0 ? (
+                  <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Khong co du lieu</TableCell></TableRow>
+                ) : filtered.map((row) => (
+                  <>
+                    <TableRow key={row.id} className="cursor-pointer" onClick={() => setExpanded((prev) => prev === row.id ? null : row.id)}>
+                      <TableCell>{expanded === row.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</TableCell>
+                      <TableCell>{row.employeeCode}</TableCell>
+                      <TableCell>{row.employeeName}</TableCell>
+                      <TableCell>{row.leaveTypeName}</TableCell>
+                      <TableCell>{formatDate(row.startDate)}</TableCell>
+                      <TableCell>{formatDate(row.endDate)}</TableCell>
+                      <TableCell>{row.days}</TableCell>
+                      <TableCell><span className={`px-2 py-1 rounded text-xs font-medium ${badgeClass(row.status)}`}>{statusLabel(row.status)}</span></TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-2">
+                          {isAdmin && row.status === 'PENDING' && (
+                            <>
+                              <Button size="sm" onClick={() => void handleApprove(row.id)} disabled={actionLoadingId === row.id}>Duyet</Button>
+                              <Button size="sm" variant="destructive" onClick={() => void handleReject(row.id)} disabled={actionLoadingId === row.id}>Tu choi</Button>
+                            </>
+                          )}
+                          {!isAdmin && row.status === 'PENDING' && (
+                            <Button size="sm" variant="destructive" onClick={() => void handleCancel(row.id)} disabled={actionLoadingId === row.id}>Huy</Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                    {expanded === row.id && (
+                      <TableRow>
+                        <TableCell colSpan={9} className="bg-muted/20">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                            <div><span className="text-muted-foreground">Ly do:</span> {row.reason}</div>
+                            <div><span className="text-muted-foreground">Nguoi duyet:</span> {row.approvedByName || '-'}</div>
+                            <div><span className="text-muted-foreground">Ly do tu choi:</span> {row.rejectionReason || '-'}</div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
       </div>
     </div>
   )
 }
-
