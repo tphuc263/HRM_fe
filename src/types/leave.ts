@@ -6,6 +6,13 @@ export interface LeaveTypeDto {
   description?: string | null
 }
 
+export interface LeaveTypeUpsertPayload {
+  code: string
+  name: string
+  isPaid: boolean
+  description?: string
+}
+
 export interface LeaveRequestDto {
   id: number
   employeeId: number

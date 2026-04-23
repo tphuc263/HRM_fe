@@ -54,3 +54,31 @@ export interface DepartmentDto {
   name: string
   description?: string | null
 }
+
+export interface DepartmentUpsertPayload {
+  code: string
+  name: string
+  description?: string
+}
+
+export interface ContractDto {
+  id: number
+  employeeId: number
+  employeeName: string
+  employeeCode: string
+  contractType: string
+  startDate: string
+  endDate?: string | null
+  basicSalary: number
+  status: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ContractUpsertPayload {
+  employeeId: number
+  contractType: string
+  startDate: string
+  endDate?: string
+  basicSalary: number
+}

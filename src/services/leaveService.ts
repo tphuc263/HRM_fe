@@ -5,12 +5,19 @@ import type {
   LeaveRequestDto,
   LeaveRequestListQuery,
   LeaveTypeDto,
+  LeaveTypeUpsertPayload,
 } from '../types/leave'
 import type { PageData } from '../types/api'
 
 export const leaveService = {
   getLeaveTypes() {
     return unwrapResponse<LeaveTypeDto[]>(apiClient.get('/leave-types'))
+  },
+  createLeaveType(payload: LeaveTypeUpsertPayload) {
+    return unwrapResponse<LeaveTypeDto>(apiClient.post('/leave-types', payload))
+  },
+  updateLeaveType(id: number, payload: LeaveTypeUpsertPayload) {
+    return unwrapResponse<LeaveTypeDto>(apiClient.put(`/leave-types/${id}`, payload))
   },
   getMyRequests(query?: LeaveRequestListQuery) {
     return unwrapResponse<PageData<LeaveRequestDto>>(apiClient.get('/leave-requests/my', { params: query }))

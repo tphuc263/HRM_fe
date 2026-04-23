@@ -20,7 +20,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Checkbox } from '../../components/ui/checkbox'
 import { employeeService } from '../../services/employeeService'
 import { departmentService } from '../../services/departmentService'
-import type { DepartmentDto, EmployeeDto, EmployeeListQuery, EmployeeUpsertPayload } from '../../types/hrm'
+import { contractService } from '../../services/contractService'
+import type { DepartmentDto, EmployeeDto, EmployeeListQuery, EmployeeUpsertPayload, ContractDto, ContractUpsertPayload } from '../../types/hrm'
 import { useAuth } from '../../context/useAuth'
 
 const PAGE_SIZE = 10
@@ -165,6 +166,18 @@ export default function EmployeeListPage() {
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [detailEmployee, setDetailEmployee] = useState<EmployeeDto | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const [activeDetailTab, setActiveDetailTab] = useState<'info' | 'contracts'>('info')
+  const [detailContracts, setDetailContracts] = useState<ContractDto[]>([])
+  
+  const [showContractForm, setShowContractForm] = useState(false)
+  const [contractForm, setContractForm] = useState<ContractUpsertPayload>({
+    employeeId: 0,
+    contractType: 'DEFINITE_1YR',
+    startDate: new Date().toISOString().slice(0, 10),
+    endDate: '',
+    basicSalary: 0,
+  })
+  const [contractLoading, setContractLoading] = useState(false)
 
   const query = useMemo(() => toApiQuery(filters, currentPage), [filters, currentPage])
   const sortedEmployees = useMemo(() => {
@@ -280,14 +293,43 @@ export default function EmployeeListPage() {
     setShowDetailModal(true)
     setDetailEmployee(null)
     setDetailLoading(true)
+    setActiveDetailTab('info')
+    setShowContractForm(false)
+    setDetailContracts([])
     try {
       const detail = await employeeService.getById(employeeId)
       setDetailEmployee(detail)
+      try {
+        const contracts = await contractService.getByEmployee(employeeId)
+        setDetailContracts(contracts)
+      } catch (e) {
+        console.warn('Lỗi lấy danh sách hợp đồng', e)
+      }
     } catch (err) {
       setError((err as Error).message)
       setShowDetailModal(false)
     } finally {
       setDetailLoading(false)
+    }
+  }
+
+  const handleCreateContract = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!detailEmployee) return
+    setContractLoading(true)
+    try {
+      await contractService.create({
+        ...contractForm,
+        employeeId: detailEmployee.id,
+        endDate: contractForm.endDate || undefined,
+      })
+      const refreshed = await contractService.getByEmployee(detailEmployee.id)
+      setDetailContracts(refreshed)
+      setShowContractForm(false)
+    } catch (err) {
+      alert((err as Error).message)
+    } finally {
+      setContractLoading(false)
     }
   }
 
@@ -787,18 +829,138 @@ export default function EmployeeListPage() {
           )}
 
           {!detailLoading && detailEmployee && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-              <p><span className="text-muted-foreground">Mã:</span> {detailEmployee.code}</p>
-              <p><span className="text-muted-foreground">Họ tên:</span> {detailEmployee.name}</p>
-              <p><span className="text-muted-foreground">Email:</span> {detailEmployee.email || '-'}</p>
-              <p><span className="text-muted-foreground">Điện thoại:</span> {detailEmployee.phone || '-'}</p>
-              <p><span className="text-muted-foreground">Ngày sinh:</span> {formatDate(detailEmployee.birthday)}</p>
-              <p><span className="text-muted-foreground">Ngày vào làm:</span> {formatDate(detailEmployee.joinDate)}</p>
-              <p><span className="text-muted-foreground">Phòng ban:</span> {detailEmployee.departmentName || '-'}</p>
-              <p><span className="text-muted-foreground">Trạng thái:</span> {statusLabel(detailEmployee.status)}</p>
-              <p className="md:col-span-2"><span className="text-muted-foreground">Địa chỉ:</span> {detailEmployee.address || '-'}</p>
-              <p><span className="text-muted-foreground">Ngày tạo:</span> {formatDate(detailEmployee.createdAt)}</p>
-              <p><span className="text-muted-foreground">Cập nhật:</span> {formatDate(detailEmployee.updatedAt)}</p>
+            <div>
+              <div className="flex items-center gap-4 border-b mb-4">
+                <button
+                  className={`pb-2 text-sm font-medium border-b-2 transition-colors ${activeDetailTab === 'info' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+                  onClick={() => setActiveDetailTab('info')}
+                >
+                  Thông tin chung
+                </button>
+                <button
+                  className={`pb-2 text-sm font-medium border-b-2 transition-colors ${activeDetailTab === 'contracts' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+                  onClick={() => setActiveDetailTab('contracts')}
+                >
+                  Hợp đồng
+                </button>
+              </div>
+
+              {activeDetailTab === 'info' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <p><span className="text-muted-foreground">Mã:</span> {detailEmployee.code}</p>
+                  <p><span className="text-muted-foreground">Họ tên:</span> {detailEmployee.name}</p>
+                  <p><span className="text-muted-foreground">Email:</span> {detailEmployee.email || '-'}</p>
+                  <p><span className="text-muted-foreground">Điện thoại:</span> {detailEmployee.phone || '-'}</p>
+                  <p><span className="text-muted-foreground">Ngày sinh:</span> {formatDate(detailEmployee.birthday)}</p>
+                  <p><span className="text-muted-foreground">Ngày vào làm:</span> {formatDate(detailEmployee.joinDate)}</p>
+                  <p><span className="text-muted-foreground">Phòng ban:</span> {detailEmployee.departmentName || '-'}</p>
+                  <p><span className="text-muted-foreground">Trạng thái:</span> {statusLabel(detailEmployee.status)}</p>
+                  <p className="md:col-span-2"><span className="text-muted-foreground">Địa chỉ:</span> {detailEmployee.address || '-'}</p>
+                  <p><span className="text-muted-foreground">Ngày tạo:</span> {formatDate(detailEmployee.createdAt)}</p>
+                  <p><span className="text-muted-foreground">Cập nhật:</span> {formatDate(detailEmployee.updatedAt)}</p>
+                </div>
+              )}
+
+              {activeDetailTab === 'contracts' && (
+                <div className="space-y-4">
+                  {isAdmin && !showContractForm && (
+                    <div className="flex justify-end">
+                      <Button size="sm" onClick={() => {
+                        setContractForm({
+                          employeeId: detailEmployee.id,
+                          contractType: 'DEFINITE_1YR',
+                          startDate: new Date().toISOString().slice(0, 10),
+                          endDate: '',
+                          basicSalary: detailEmployee.currentSalary || 0,
+                        })
+                        setShowContractForm(true)
+                      }}>
+                        <UserPlus className="h-3.5 w-3.5 mr-1" /> Thêm hợp đồng
+                      </Button>
+                    </div>
+                  )}
+
+                  {showContractForm && (
+                    <form className="border p-4 rounded-md space-y-3 bg-muted/20" onSubmit={handleCreateContract}>
+                      <h3 className="text-sm font-medium">Tạo hợp đồng mới (DRAFT)</h3>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-muted-foreground">Loại hợp đồng</label>
+                          <select className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" value={contractForm.contractType} onChange={(e) => setContractForm({...contractForm, contractType: e.target.value})}>
+                            <option value="PROBATION">Thử việc</option>
+                            <option value="DEFINITE_1YR">Có thời hạn 1 năm</option>
+                            <option value="INDEFINITE">Vô thời hạn</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-xs text-muted-foreground">Lương cơ bản</label>
+                          <Input type="number" required min={0} value={contractForm.basicSalary} onChange={(e) => setContractForm({...contractForm, basicSalary: Number(e.target.value)})} />
+                        </div>
+                        <div>
+                          <label className="text-xs text-muted-foreground">Ngày bắt đầu</label>
+                          <Input type="date" required value={contractForm.startDate} onChange={(e) => setContractForm({...contractForm, startDate: e.target.value})} />
+                        </div>
+                        <div>
+                          <label className="text-xs text-muted-foreground">Ngày kết thúc</label>
+                          <Input type="date" value={contractForm.endDate || ''} onChange={(e) => setContractForm({...contractForm, endDate: e.target.value})} />
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2 pt-2">
+                        <Button type="button" variant="ghost" size="sm" onClick={() => setShowContractForm(false)}>Hủy</Button>
+                        <Button type="submit" size="sm" disabled={contractLoading}>Lưu hợp đồng</Button>
+                      </div>
+                    </form>
+                  )}
+
+                  {!showContractForm && detailContracts.length === 0 ? (
+                    <div className="text-center py-4 text-sm text-muted-foreground">Chưa có hợp đồng nào</div>
+                  ) : !showContractForm && (
+                    <div className="border rounded-md divide-y">
+                      {detailContracts.map((contract) => (
+                        <div key={contract.id} className="p-3 text-sm flex items-center justify-between hover:bg-muted/50 transition-colors">
+                          <div>
+                            <div className="font-medium text-foreground">{contract.contractType}</div>
+                            <div className="text-muted-foreground text-xs mt-1">
+                              {formatDate(contract.startDate)} - {contract.endDate ? formatDate(contract.endDate) : 'Vô thời hạn'}
+                            </div>
+                            <div className="text-xs mt-1 font-medium">Lương: {formatCurrency(contract.basicSalary)}</div>
+                          </div>
+                          <div className="flex flex-col items-end gap-2">
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                              contract.status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
+                              contract.status === 'DRAFT' ? 'bg-yellow-100 text-yellow-700' :
+                              contract.status === 'EXPIRED' ? 'bg-gray-100 text-gray-700' :
+                              'bg-red-100 text-red-700'
+                            }`}>
+                              {contract.status}
+                            </span>
+                            {isAdmin && contract.status === 'DRAFT' && (
+                              <Button size="sm" variant="outline" className="h-6 text-xs px-2" onClick={async () => {
+                                if (!window.confirm('Kích hoạt hợp đồng này? Hợp đồng ACTIVE cũ (nếu có) sẽ hết hiệu lực.')) return;
+                                try {
+                                  await contractService.activate(contract.id);
+                                  const refreshed = await contractService.getByEmployee(detailEmployee.id);
+                                  setDetailContracts(refreshed);
+                                } catch (e) { alert((e as Error).message) }
+                              }}>Kích hoạt</Button>
+                            )}
+                            {isAdmin && contract.status === 'ACTIVE' && (
+                              <Button size="sm" variant="outline" className="h-6 text-xs px-2 text-destructive border-destructive" onClick={async () => {
+                                if (!window.confirm('Chấm dứt hợp đồng này?')) return;
+                                try {
+                                  await contractService.terminate(contract.id);
+                                  const refreshed = await contractService.getByEmployee(detailEmployee.id);
+                                  setDetailContracts(refreshed);
+                                } catch (e) { alert((e as Error).message) }
+                              }}>Chấm dứt</Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </EmployeeModal>

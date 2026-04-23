@@ -9,8 +9,46 @@ export interface AttendanceRecordDto {
   status?: string | null
   overtimeHours?: number | null
   workHours?: number | null
+  lateMinutes?: number | null
+  earlyLeaveMinutes?: number | null
   note?: string | null
   createdAt?: string
+}
+
+export interface ShiftDto {
+  id: number
+  code: string
+  name: string
+  startTime: string
+  endTime: string
+  breakStartTime?: string | null
+  breakEndTime?: string | null
+  isDefault: boolean
+  isActive: boolean
+}
+
+export interface ShiftUpsertPayload {
+  code: string
+  name: string
+  startTime: string
+  endTime: string
+  breakStartTime?: string
+  breakEndTime?: string
+  isDefault: boolean
+  isActive: boolean
+}
+
+export interface HolidayDto {
+  id: number
+  name: string
+  date: string
+  isPaid: boolean
+}
+
+export interface HolidayUpsertPayload {
+  name: string
+  date: string
+  isPaid: boolean
 }
 
 export interface MonthlyStatsDto {

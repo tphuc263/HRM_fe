@@ -11,6 +11,10 @@ import RequireAuth from './components/auth/RequireAuth'
 import LoginPage from './pages/auth/LoginPage'
 import PayrollListPage from './pages/payroll/PayrollListPage'
 import MyPayrollPage from './pages/payroll/MyPayrollPage'
+import DepartmentListPage from './pages/departments/DepartmentListPage'
+import LeaveTypeListPage from './pages/settings/LeaveTypeListPage'
+import ShiftListPage from './pages/settings/ShiftListPage'
+import HolidayListPage from './pages/settings/HolidayListPage'
 import { useAuth } from './context/useAuth'
 
 function ProtectedPage({
@@ -50,6 +54,10 @@ function App() {
         <Route path="/admin/attendance/leave-request" element={<ProtectedPage allowedRoles={['ADMIN']}><LeaveRequestPage /></ProtectedPage>} />
         <Route path="/admin/attendance/absence" element={<ProtectedPage allowedRoles={['ADMIN']}><AbsenceManagementPage /></ProtectedPage>} />
         <Route path="/admin/payroll/manage" element={<ProtectedPage allowedRoles={['ADMIN']}><PayrollListPage /></ProtectedPage>} />
+        <Route path="/admin/departments" element={<ProtectedPage allowedRoles={['ADMIN']}><DepartmentListPage /></ProtectedPage>} />
+        <Route path="/admin/leave-types" element={<ProtectedPage allowedRoles={['ADMIN']}><LeaveTypeListPage /></ProtectedPage>} />
+        <Route path="/admin/shifts" element={<ProtectedPage allowedRoles={['ADMIN']}><ShiftListPage /></ProtectedPage>} />
+        <Route path="/admin/holidays" element={<ProtectedPage allowedRoles={['ADMIN']}><HolidayListPage /></ProtectedPage>} />
 
         <Route path="/employees" element={<ProtectedPage allowedRoles={['ADMIN']}><EmployeeListPage /></ProtectedPage>} />
         <Route path="/attendance/daily" element={<ProtectedPage><DailyAttendancePage /></ProtectedPage>} />

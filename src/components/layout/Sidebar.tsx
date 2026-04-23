@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LayoutGrid, Users, ChevronDown, ChevronRight, Clock, PanelLeftClose, FileText, LogOut, Wallet } from 'lucide-react'
+import { LayoutGrid, Users, ChevronDown, ChevronRight, Clock, PanelLeftClose, FileText, LogOut, Wallet, Settings } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { cn } from '../../lib/utils'
 import { useAuth } from '../../context/useAuth'
@@ -42,7 +42,18 @@ const payrollMenu = {
   ],
 }
 
-const allMenus = [attendanceMenu, leaveMenu, payrollMenu]
+const settingsMenu = {
+  label: 'Cấu hình hệ thống',
+  icon: Settings,
+  children: [
+    { to: '/admin/departments', label: 'Phòng ban' },
+    { to: '/admin/leave-types', label: 'Loại phép' },
+    { to: '/admin/shifts', label: 'Ca làm việc' },
+    { to: '/admin/holidays', label: 'Ngày nghỉ lễ' },
+  ],
+}
+
+const allMenus = [attendanceMenu, leaveMenu, payrollMenu, settingsMenu]
 
 export default function Sidebar() {
   const location = useLocation()
