@@ -12,6 +12,7 @@ export interface EmployeeDto {
   departmentName?: string | null
   status: string
   resignationDate?: string | null
+  dependentCount?: number
   currentSalary?: number | null
   latestNetSalary?: number | null
   lastPayrollMonth?: string | null
@@ -36,6 +37,7 @@ export interface EmployeeUpsertPayload {
   joinDate: string
   departmentId?: number
   avatar?: string
+  dependentCount?: number
 }
 
 export interface EmployeeListQuery {

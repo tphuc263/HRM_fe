@@ -60,6 +60,7 @@ const initialForm: EmployeeUpsertPayload = {
   joinDate: '',
   departmentId: undefined,
   avatar: '',
+  dependentCount: 0,
 }
 
 function formatDate(value?: string | null) {
@@ -281,6 +282,7 @@ export default function EmployeeListPage() {
         joinDate: detail.joinDate || '',
         departmentId: detail.departmentId ?? undefined,
         avatar: detail.avatar || '',
+        dependentCount: detail.dependentCount || 0,
       })
     } catch (err) {
       setFormError((err as Error).message)
@@ -366,6 +368,7 @@ export default function EmployeeListPage() {
       joinDate: form.joinDate,
       departmentId: form.departmentId,
       avatar: form.avatar?.trim() || undefined,
+      dependentCount: form.dependentCount ?? 0,
     }
 
     setFormLoading(true)
@@ -853,6 +856,7 @@ export default function EmployeeListPage() {
                   <p><span className="text-muted-foreground">Điện thoại:</span> {detailEmployee.phone || '-'}</p>
                   <p><span className="text-muted-foreground">Ngày sinh:</span> {formatDate(detailEmployee.birthday)}</p>
                   <p><span className="text-muted-foreground">Ngày vào làm:</span> {formatDate(detailEmployee.joinDate)}</p>
+                  <p><span className="text-muted-foreground">Số người phụ thuộc:</span> {detailEmployee.dependentCount || 0}</p>
                   <p><span className="text-muted-foreground">Phòng ban:</span> {detailEmployee.departmentName || '-'}</p>
                   <p><span className="text-muted-foreground">Trạng thái:</span> {statusLabel(detailEmployee.status)}</p>
                   <p className="md:col-span-2"><span className="text-muted-foreground">Địa chỉ:</span> {detailEmployee.address || '-'}</p>
