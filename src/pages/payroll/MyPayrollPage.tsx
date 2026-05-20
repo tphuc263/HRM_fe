@@ -4,12 +4,14 @@ import { Button } from '../../components/ui/button';
 import { payrollApi } from '../../lib/api/payrollApi';
 import type { PayrollResponse } from '../../types/payroll';
 import PayrollStatusBadge from '../../components/payroll/PayrollStatusBadge';
+import { useAuth } from '../../context/useAuth';
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 };
 
 export default function MyPayrollPage() {
+  const { user } = useAuth();
   const PAGE_SIZE = 10;
   const [payrolls, setPayrolls] = useState<PayrollResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -19,7 +21,7 @@ export default function MyPayrollPage() {
 
   useEffect(() => {
     // Lấy ID nhân viên từ tài khoản đang đăng nhập
-    const currentEmployeeId = Number(localStorage.getItem('employeeId')) || 1; 
+    const currentEmployeeId = user?.userId || 1; 
 
     const fetchMyPayrolls = async () => {
       try {
