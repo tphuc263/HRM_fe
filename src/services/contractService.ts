@@ -1,29 +1,29 @@
-import { apiClient, unwrapResponse } from './apiClient'
+import { apiClient } from './apiClient'
 import type { ContractDto, ContractUpsertPayload } from '../types/hrm'
 
 export const contractService = {
   create(payload: ContractUpsertPayload) {
-    return unwrapResponse<ContractDto>(apiClient.post('/contracts', payload))
+    return apiClient.post<ContractDto>('/contracts', payload)
   },
   update(id: number, payload: ContractUpsertPayload) {
-    return unwrapResponse<ContractDto>(apiClient.put(`/contracts/${id}`, payload))
+    return apiClient.put<ContractDto>(`/contracts/${id}`, payload)
   },
   activate(id: number) {
-    return unwrapResponse<ContractDto>(apiClient.put(`/contracts/${id}/activate`))
+    return apiClient.put<ContractDto>(`/contracts/${id}/activate`)
   },
   terminate(id: number) {
-    return unwrapResponse<ContractDto>(apiClient.put(`/contracts/${id}/terminate`))
+    return apiClient.put<ContractDto>(`/contracts/${id}/terminate`)
   },
   getById(id: number) {
-    return unwrapResponse<ContractDto>(apiClient.get(`/contracts/${id}`))
+    return apiClient.get<ContractDto>(`/contracts/${id}`)
   },
   getByEmployee(employeeId: number) {
-    return unwrapResponse<ContractDto[]>(apiClient.get(`/contracts/employee/${employeeId}`))
+    return apiClient.get<ContractDto[]>(`/contracts/employee/${employeeId}`)
   },
   getActiveContract(employeeId: number) {
-    return unwrapResponse<ContractDto>(apiClient.get(`/contracts/employee/${employeeId}/active`))
+    return apiClient.get<ContractDto>(`/contracts/employee/${employeeId}/active`)
   },
   getExpiring(days: number = 30) {
-    return unwrapResponse<ContractDto[]>(apiClient.get('/contracts/expiring', { params: { days } }))
+    return apiClient.get<ContractDto[]>('/contracts/expiring', { params: { days } })
   },
 }

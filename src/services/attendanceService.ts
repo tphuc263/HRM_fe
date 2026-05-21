@@ -1,4 +1,4 @@
-import { apiClient, unwrapResponse } from './apiClient'
+import { apiClient } from './apiClient'
 import type {
   AttendanceListQuery,
   AttendanceRecordDto,
@@ -10,42 +10,36 @@ import type { PageData } from '../types/api'
 
 export const attendanceService = {
   checkIn() {
-    return unwrapResponse<AttendanceRecordDto>(apiClient.post('/attendance/check-in'))
+    return apiClient.post<AttendanceRecordDto>('/attendance/check-in')
   },
   checkOut() {
-    return unwrapResponse<AttendanceRecordDto>(apiClient.post('/attendance/check-out'))
+    return apiClient.post<AttendanceRecordDto>('/attendance/check-out')
   },
   getToday() {
-    return unwrapResponse<AttendanceRecordDto>(apiClient.get('/attendance/today'))
+    return apiClient.get<AttendanceRecordDto>('/attendance/today')
   },
   getMyRecords(query: AttendanceListQuery) {
-    return unwrapResponse<PageData<AttendanceRecordDto>>(apiClient.get('/attendance/my-records', { params: query }))
+    return apiClient.get<PageData<AttendanceRecordDto>>('/attendance/my-records', { params: query })
   },
   getDaily(query: DailyAttendanceQuery) {
-    return unwrapResponse<PageData<AttendanceRecordDto>>(apiClient.get('/attendance/daily', { params: query }))
+    return apiClient.get<PageData<AttendanceRecordDto>>('/attendance/daily', { params: query })
   },
   getEmployeeRecords(employeeId: number, query: AttendanceListQuery) {
-    return unwrapResponse<PageData<AttendanceRecordDto>>(
-      apiClient.get(`/attendance/employee/${employeeId}`, { params: query }),
-    )
+    return apiClient.get<PageData<AttendanceRecordDto>>(`/attendance/employee/${employeeId}`, { params: query })
   },
   getMonthlyStats(employeeId: number, month: number, year: number) {
-    return unwrapResponse<MonthlyStatsDto>(
-      apiClient.get(`/attendance/stats/${employeeId}`, { params: { month, year } }),
-    )
+    return apiClient.get<MonthlyStatsDto>(`/attendance/stats/${employeeId}`, { params: { month, year } })
   },
   adminUpdate(recordId: number, payload: AttendanceUpdatePayload) {
-    return unwrapResponse<AttendanceRecordDto>(apiClient.put(`/attendance/${recordId}`, payload))
+    return apiClient.put<AttendanceRecordDto>(`/attendance/${recordId}`, payload)
   },
   markAbsent(employeeId: number, date: string, note?: string) {
-    return unwrapResponse<AttendanceRecordDto>(
-      apiClient.post('/attendance/mark-absent', null, {
-        params: {
-          employeeId,
-          date,
-          note: note || undefined,
-        },
-      }),
-    )
+    return apiClient.post<AttendanceRecordDto>('/attendance/mark-absent', null, {
+            params: {
+              employeeId,
+              date,
+              note: note || undefined,
+            },
+          })
   },
 }

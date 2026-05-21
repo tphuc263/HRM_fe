@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Search,
   UserPlus,
@@ -21,7 +22,7 @@ import { Checkbox } from '../../components/ui/checkbox'
 import { employeeService } from '../../services/employeeService'
 import { departmentService } from '../../services/departmentService'
 import { contractService } from '../../services/contractService'
-import type { DepartmentDto, EmployeeDto, EmployeeListQuery, EmployeeUpsertPayload, ContractDto, ContractUpsertPayload } from '../../types/hrm'
+import type { EmployeeDto, EmployeeListQuery, EmployeeUpsertPayload, ContractDto, ContractUpsertPayload } from '../../types/hrm'
 import { useAuth } from '../../context/useAuth'
 
 const PAGE_SIZE = 10
@@ -145,16 +146,7 @@ export default function EmployeeListPage() {
   const [draftFilters, setDraftFilters] = useState<FilterState>(defaultFilters)
   const [filters, setFilters] = useState<FilterState>(defaultFilters)
   const [selectedIds, setSelectedIds] = useState<number[]>([])
-  const [employees, setEmployees] = useState<EmployeeDto[]>([])
-  const [departments, setDepartments] = useState<DepartmentDto[]>([])
-
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [actionLoading, setActionLoading] = useState(false)
-
   const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
-  const [totalItems, setTotalItems] = useState(0)
 
   const [showFormModal, setShowFormModal] = useState(false)
   const [formMode, setFormMode] = useState<EmployeeFormMode>('create')
@@ -181,6 +173,24 @@ export default function EmployeeListPage() {
   const [contractLoading, setContractLoading] = useState(false)
 
   const query = useMemo(() => toApiQuery(filters, currentPage), [filters, currentPage])
+
+  const queryClient = useQueryClient()
+
+  const { data: departments = [] } = useQuery({
+    queryKey: ['departments'],
+    queryFn: () => departmentService.getAll(),
+  })
+
+  const { data: pageData, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['employees', query],
+    queryFn: () => employeeService.getAll(query),
+  })
+
+  const employees = pageData?.content || []
+  const totalPages = Math.max(1, pageData?.totalPages || 1)
+  const totalItems = pageData?.totalElements || 0
+  const error = queryError ? (queryError as Error).message : ''
+
   const sortedEmployees = useMemo(() => {
     if (filters.sortField === 'NAME') {
       const byName = [...employees].sort((a, b) => a.name.localeCompare(b.name, 'vi', { sensitivity: 'base' }))
@@ -195,42 +205,31 @@ export default function EmployeeListPage() {
     return filters.sortDirection === 'asc' ? bySalary : bySalary.reverse()
   }, [employees, filters.sortDirection, filters.sortField])
 
-  const loadDepartments = useCallback(async () => {
-    try {
-      const data = await departmentService.getAll()
-      setDepartments(data)
-    } catch {
-      setDepartments([])
-    }
-  }, [])
-
-  const loadEmployees = useCallback(async () => {
-    setLoading(true)
-    setError('')
-    try {
-      const pageData = await employeeService.getAll(query)
-      setEmployees(pageData.content)
-      setTotalPages(Math.max(1, pageData.totalPages))
-      setTotalItems(pageData.totalElements)
+  const deleteMutation = useMutation({
+    mutationFn: (ids: number[]) => Promise.all(ids.map((id) => employeeService.delete(id))),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['employees'] })
       setSelectedIds([])
-    } catch (err) {
-      setError((err as Error).message || 'Không thể tải danh sách nhân viên')
-      setEmployees([])
-      setTotalPages(1)
-      setTotalItems(0)
-      setSelectedIds([])
-    } finally {
-      setLoading(false)
-    }
-  }, [query])
+    },
+  })
 
-  useEffect(() => {
-    void loadEmployees()
-  }, [loadEmployees])
+  const resignMutation = useMutation({
+    mutationFn: ({ id, date }: { id: number; date?: string }) => employeeService.resign(id, date),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['employees'] }),
+  })
 
-  useEffect(() => {
-    void loadDepartments()
-  }, [loadDepartments])
+  const saveMutation = useMutation({
+    mutationFn: (payload: { id?: number; data: EmployeeUpsertPayload }) => {
+      if (payload.id) {
+        return employeeService.update(payload.id, payload.data)
+      }
+      return employeeService.create(payload.data)
+    },
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['employees'] }),
+  })
+
+  // Export action loading state
+  const [actionLoading, setActionLoading] = useState(false)
 
   const start = (currentPage - 1) * PAGE_SIZE + 1
   const selectedCount = selectedIds.length
@@ -308,7 +307,7 @@ export default function EmployeeListPage() {
         console.warn('Lỗi lấy danh sách hợp đồng', e)
       }
     } catch (err) {
-      setError((err as Error).message)
+      alert((err as Error).message)
       setShowDetailModal(false)
     } finally {
       setDetailLoading(false)
@@ -373,15 +372,15 @@ export default function EmployeeListPage() {
 
     setFormLoading(true)
     try {
-      if (formMode === 'create') {
-        const created = await employeeService.create(payload)
-        setCreatedAccount(created.generatedAccount || null)
-      } else if (editingEmployeeId) {
-        await employeeService.update(editingEmployeeId, payload)
+      const result = await saveMutation.mutateAsync({
+        id: editingEmployeeId || undefined,
+        data: payload,
+      })
+      if (formMode === 'create' && result.generatedAccount) {
+        setCreatedAccount(result.generatedAccount)
+      } else {
         setShowFormModal(false)
       }
-
-      await loadEmployees()
     } catch (err) {
       setFormError((err as Error).message)
     } finally {
@@ -401,14 +400,10 @@ export default function EmployeeListPage() {
     const confirmed = window.confirm(`Bạn có chắc chắn xóa ${selectedIds.length} nhân viên đã chọn?`)
     if (!confirmed) return
 
-    setActionLoading(true)
     try {
-      await Promise.all(selectedIds.map((id) => employeeService.delete(id)))
-      await loadEmployees()
+      await deleteMutation.mutateAsync(selectedIds)
     } catch (err) {
-      setError((err as Error).message)
-    } finally {
-      setActionLoading(false)
+      alert((err as Error).message)
     }
   }
 
@@ -417,14 +412,10 @@ export default function EmployeeListPage() {
     const resignationDate = window.prompt('Nhập ngày nghỉ việc (YYYY-MM-DD), để trống để dùng ngày hôm nay:')
     if (resignationDate === null) return
 
-    setActionLoading(true)
     try {
-      await employeeService.resign(employee.id, resignationDate || undefined)
-      await loadEmployees()
+      await resignMutation.mutateAsync({ id: employee.id, date: resignationDate || undefined })
     } catch (err) {
-      setError((err as Error).message)
-    } finally {
-      setActionLoading(false)
+      alert((err as Error).message)
     }
   }
 
@@ -477,7 +468,7 @@ export default function EmployeeListPage() {
       const dateLabel = new Date().toISOString().slice(0, 10)
       downloadCsv(`employees-${dateLabel}.csv`, rows)
     } catch (err) {
-      setError((err as Error).message)
+      alert((err as Error).message)
     } finally {
       setActionLoading(false)
     }

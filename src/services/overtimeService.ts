@@ -1,10 +1,10 @@
-import { apiClient, unwrapResponse } from './apiClient'
+import { apiClient } from './apiClient'
 import type { OvertimeRequestRequest, OvertimeRequestResponse } from '../types/attendance'
 import type { PageData } from '../types/api'
 
 export const overtimeService = {
   createRequest(payload: OvertimeRequestRequest) {
-    return unwrapResponse<OvertimeRequestResponse>(apiClient.post('/overtime-requests', payload))
+    return apiClient.post<OvertimeRequestResponse>('/overtime-requests', payload)
   },
 
   getMyRequests(params: {
@@ -15,9 +15,7 @@ export const overtimeService = {
     sortBy?: string
     sortDir?: string
   }) {
-    return unwrapResponse<PageData<OvertimeRequestResponse>>(
-      apiClient.get('/overtime-requests/my', { params }),
-    )
+    return apiClient.get<PageData<OvertimeRequestResponse>>('/overtime-requests/my', { params })
   },
 
   getAllRequests(params: {
@@ -28,22 +26,18 @@ export const overtimeService = {
     sortBy?: string
     sortDir?: string
   }) {
-    return unwrapResponse<PageData<OvertimeRequestResponse>>(
-      apiClient.get('/overtime-requests', { params }),
-    )
+    return apiClient.get<PageData<OvertimeRequestResponse>>('/overtime-requests', { params })
   },
 
   approveRequest(id: number) {
-    return unwrapResponse<OvertimeRequestResponse>(apiClient.put(`/overtime-requests/${id}/approve`))
+    return apiClient.put<OvertimeRequestResponse>(`/overtime-requests/${id}/approve`)
   },
 
   rejectRequest(id: number, reason: string) {
-    return unwrapResponse<OvertimeRequestResponse>(
-      apiClient.put(`/overtime-requests/${id}/reject`, null, { params: { reason } }),
-    )
+    return apiClient.put<OvertimeRequestResponse>(`/overtime-requests/${id}/reject`, null, { params: { reason } })
   },
 
   cancelRequest(id: number) {
-    return unwrapResponse<void>(apiClient.delete(`/overtime-requests/${id}`))
+    return apiClient.delete<void>(`/overtime-requests/${id}`)
   },
 }

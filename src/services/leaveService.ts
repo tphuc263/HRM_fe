@@ -1,4 +1,4 @@
-import { apiClient, unwrapResponse } from './apiClient'
+import { apiClient } from './apiClient'
 import type {
   LeaveBalanceDto,
   LeaveRequestCreatePayload,
@@ -11,56 +11,50 @@ import type { PageData } from '../types/api'
 
 export const leaveService = {
   getLeaveTypes() {
-    return unwrapResponse<LeaveTypeDto[]>(apiClient.get('/leave-types'))
+    return apiClient.get<LeaveTypeDto[]>('/leave-types')
   },
   createLeaveType(payload: LeaveTypeUpsertPayload) {
-    return unwrapResponse<LeaveTypeDto>(apiClient.post('/leave-types', payload))
+    return apiClient.post<LeaveTypeDto>('/leave-types', payload)
   },
   updateLeaveType(id: number, payload: LeaveTypeUpsertPayload) {
-    return unwrapResponse<LeaveTypeDto>(apiClient.put(`/leave-types/${id}`, payload))
+    return apiClient.put<LeaveTypeDto>(`/leave-types/${id}`, payload)
   },
   getMyRequests(query?: LeaveRequestListQuery) {
-    return unwrapResponse<PageData<LeaveRequestDto>>(apiClient.get('/leave-requests/my', { params: query }))
+    return apiClient.get<PageData<LeaveRequestDto>>('/leave-requests/my', { params: query })
   },
   getPendingRequests(query?: LeaveRequestListQuery) {
-    return unwrapResponse<PageData<LeaveRequestDto>>(apiClient.get('/leave-requests/pending', { params: query }))
+    return apiClient.get<PageData<LeaveRequestDto>>('/leave-requests/pending', { params: query })
   },
   getAllRequests(query?: LeaveRequestListQuery) {
-    return unwrapResponse<PageData<LeaveRequestDto>>(apiClient.get('/leave-requests', { params: query }))
+    return apiClient.get<PageData<LeaveRequestDto>>('/leave-requests', { params: query })
   },
   submitRequest(payload: LeaveRequestCreatePayload) {
-    return unwrapResponse<LeaveRequestDto>(apiClient.post('/leave-requests', payload))
+    return apiClient.post<LeaveRequestDto>('/leave-requests', payload)
   },
   cancelRequest(id: number) {
-    return unwrapResponse<LeaveRequestDto>(apiClient.put(`/leave-requests/${id}/cancel`))
+    return apiClient.put<LeaveRequestDto>(`/leave-requests/${id}/cancel`)
   },
   approveRequest(id: number) {
-    return unwrapResponse<LeaveRequestDto>(apiClient.put(`/leave-requests/${id}/approve`))
+    return apiClient.put<LeaveRequestDto>(`/leave-requests/${id}/approve`)
   },
   rejectRequest(id: number, reason: string) {
-    return unwrapResponse<LeaveRequestDto>(
-      apiClient.put(`/leave-requests/${id}/reject`, null, { params: { reason } }),
-    )
+    return apiClient.put<LeaveRequestDto>(`/leave-requests/${id}/reject`, null, { params: { reason } })
   },
   getMyBalances(year: number) {
-    return unwrapResponse<LeaveBalanceDto[]>(apiClient.get('/leave-balances/my', { params: { year } }))
+    return apiClient.get<LeaveBalanceDto[]>('/leave-balances/my', { params: { year } })
   },
   getEmployeeBalances(employeeId: number, year: number) {
-    return unwrapResponse<LeaveBalanceDto[]>(
-      apiClient.get(`/leave-balances/employee/${employeeId}`, { params: { year } }),
-    )
+    return apiClient.get<LeaveBalanceDto[]>(`/leave-balances/employee/${employeeId}`, { params: { year } })
   },
   initBalance(employeeId: number, year: number) {
-    return unwrapResponse<void>(apiClient.post('/leave-balances/init', null, { params: { employeeId, year } }))
+    return apiClient.post<void>('/leave-balances/init', null, { params: { employeeId, year } })
   },
   updateBalance(id: number, totalDays?: number, carryOverDays?: number) {
-    return unwrapResponse<LeaveBalanceDto>(
-      apiClient.put(`/leave-balances/${id}`, null, {
-        params: {
-          totalDays,
-          carryOverDays,
-        },
-      }),
-    )
+    return apiClient.put<LeaveBalanceDto>(`/leave-balances/${id}`, null, {
+            params: {
+              totalDays,
+              carryOverDays,
+            },
+          })
   },
 }

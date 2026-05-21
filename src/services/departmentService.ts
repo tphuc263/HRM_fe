@@ -1,17 +1,17 @@
-import { apiClient, unwrapResponse } from './apiClient'
+import { apiClient } from './apiClient'
 import type { DepartmentDto, DepartmentUpsertPayload } from '../types/hrm'
 
 export const departmentService = {
   getAll() {
-    return unwrapResponse<DepartmentDto[]>(apiClient.get('/departments'))
+    return apiClient.get<DepartmentDto[]>('/departments')
   },
   create(payload: DepartmentUpsertPayload) {
-    return unwrapResponse<DepartmentDto>(apiClient.post('/departments', payload))
+    return apiClient.post<DepartmentDto>('/departments', payload)
   },
   update(id: number, payload: DepartmentUpsertPayload) {
-    return unwrapResponse<DepartmentDto>(apiClient.put(`/departments/${id}`, payload))
+    return apiClient.put<DepartmentDto>(`/departments/${id}`, payload)
   },
   delete(id: number) {
-    return unwrapResponse<void>(apiClient.delete(`/departments/${id}`))
+    return apiClient.delete<void>(`/departments/${id}`)
   },
 }
