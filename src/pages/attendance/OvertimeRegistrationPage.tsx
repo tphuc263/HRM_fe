@@ -6,7 +6,6 @@ import {
   Clock,
   CheckCircle,
   X,
-  AlertCircle,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
