@@ -1,4 +1,4 @@
-import { X, Calendar, Clock, User, CheckCircle, AlertCircle, FileText, Info } from 'lucide-react'
+import { X, Calendar, Clock, User, CheckCircle, FileText, Info } from 'lucide-react'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
 import type { AttendanceRecordDto } from '../../types/attendance'
