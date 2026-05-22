@@ -7,21 +7,29 @@ import { useAuth } from '../../context/useAuth'
 const adminMainNavItems = [
   { to: '/admin', label: 'Dashboard', icon: LayoutGrid },
   { to: '/admin/employees', label: 'Danh sách nhân viên', icon: Users },
+  { to: '/admin/payroll/manage', label: 'Quản lý phiếu lương', icon: Wallet },
 ]
 
-const employeeMainNavItems = [
-  { to: '/attendance/daily', label: 'Dashboard', icon: LayoutGrid },
-  { to: '/attendance/overtime', label: 'Đăng ký tăng ca', icon: Clock },
-]
+function getEmployeeMainNavItems(userId: number) {
+  const base = `/employees/${userId}`
+  return [
+    { to: `${base}/attendance/daily`, label: 'Dashboard', icon: LayoutGrid },
+    { to: `${base}/attendance/overtime`, label: 'Đăng ký tăng ca', icon: Clock },
+    { to: `${base}/attendance/leave-request`, label: 'Đơn xin nghỉ', icon: FileText },
+    { to: `${base}/payroll/my-salary`, label: 'Lương của tôi', icon: Wallet },
+  ]
+}
 
-const attendanceMenu = {
-  label: 'Quản lý chấm công',
-  icon: Clock,
-  children: [
-    { to: '/admin/attendance/daily', label: 'Công ngày' },
-    { to: '/admin/attendance/monthly', label: 'Công tháng' },
-    { to: '/attendance/overtime', label: 'Đăng ký tăng ca' },
-  ],
+function getAttendanceMenu() {
+  return {
+    label: 'Quản lý chấm công',
+    icon: Clock,
+    children: [
+      { to: '/admin/attendance/daily', label: 'Công ngày' },
+      { to: '/admin/attendance/monthly', label: 'Công tháng' },
+      { to: '/admin/attendance/overtime', label: 'Đăng ký tăng ca' },
+    ],
+  }
 }
 
 const leaveMenu = {
@@ -30,15 +38,6 @@ const leaveMenu = {
   children: [
     { to: '/admin/attendance/leave-request', label: 'Đơn xin nghỉ' },
     { to: '/admin/attendance/absence', label: 'Quản lý vắng' },
-  ],
-}
-
-const payrollMenu = {
-  label: 'Quản lý Lương',
-  icon: Wallet,
-  children: [
-    { to: '/payroll/my-salary', label: 'Lương của tôi' },
-    { to: '/admin/payroll/manage', label: 'Quản lý phiếu lương (Admin)' },
   ],
 }
 
@@ -53,23 +52,20 @@ const settingsMenu = {
   ],
 }
 
-const allMenus = [attendanceMenu, leaveMenu, payrollMenu, settingsMenu]
-
 export default function Sidebar() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, logout } = useAuth()
   const isAdmin = user?.role === 'ADMIN'
-  const mainNavItems = isAdmin ? adminMainNavItems : employeeMainNavItems
+  const userId = user?.userId
+  const mainNavItems = isAdmin ? adminMainNavItems : getEmployeeMainNavItems(userId || 0)
+  const allMenus = [getAttendanceMenu(), leaveMenu, settingsMenu]
   const visibleMenus = allMenus
     .map((menu) => ({
       ...menu,
       children: menu.children.filter((child) => {
-        // Nếu là User, lọc bỏ các mục bắt đầu bằng /admin/
-        // Và cũng lọc bỏ mục /attendance/overtime vì đã đưa ra ngoài mainNavItems
         if (!isAdmin) {
           if (child.to.includes('/admin/')) return false
-          if (child.to === '/attendance/overtime') return false
         }
         return true
       }),
@@ -88,7 +84,7 @@ export default function Sidebar() {
     }
     return location.pathname === to
   }
-  const isParentActive = (menu: typeof attendanceMenu) => menu.children.some(c => location.pathname.startsWith(c.to))
+  const isParentActive = (menu: ReturnType<typeof getAttendanceMenu>) => menu.children.some(c => location.pathname.startsWith(c.to))
   const toggleMenu = (label: string) => setExpandedMenus(prev => ({ ...prev, [label]: !prev[label] }))
 
   const handleLogout = () => {

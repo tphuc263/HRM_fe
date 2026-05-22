@@ -237,13 +237,14 @@ export default function DashboardPage() {
       ]
     }
 
+    const base = `/employees/${user?.userId}`
     return [
-      { to: '/attendance/daily', label: 'Công ngày', hint: 'Kiểm tra giờ vào/ra hôm nay', icon: Clock3 },
-      { to: '/attendance/overtime', label: 'Đăng ký tăng ca', hint: 'Tạo và quản lý phiếu tăng ca', icon: CalendarClock },
-      { to: '/attendance/leave-request', label: 'Đơn xin nghỉ', hint: 'Theo dõi trạng thái yêu cầu nghỉ phép', icon: FileText },
-      { to: '/payroll/my-salary', label: 'Lương của tôi', hint: 'Xem bảng lương cá nhân', icon: Wallet },
+      { to: `${base}/attendance/daily`, label: 'Công ngày', hint: 'Kiểm tra giờ vào/ra hôm nay', icon: Clock3 },
+      { to: `${base}/attendance/overtime`, label: 'Đăng ký tăng ca', hint: 'Tạo và quản lý phiếu tăng ca', icon: CalendarClock },
+      { to: `${base}/attendance/leave-request`, label: 'Đơn xin nghỉ', hint: 'Theo dõi trạng thái yêu cầu nghỉ phép', icon: FileText },
+      { to: `${base}/payroll/my-salary`, label: 'Lương của tôi', hint: 'Xem bảng lương cá nhân', icon: Wallet },
     ]
-  }, [isAdmin])
+  }, [isAdmin, user?.userId])
 
   const recentActivities = useMemo<ActivityItem[]>(() => {
     if (!isAdmin) {

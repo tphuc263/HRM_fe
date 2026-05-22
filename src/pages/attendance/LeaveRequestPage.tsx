@@ -370,7 +370,7 @@ export default function LeaveRequestPage() {
                       <TableCell>{row.leaveTypeName}</TableCell>
                       <TableCell>{formatDate(row.startDate)}</TableCell>
                       <TableCell>{formatDate(row.endDate)}</TableCell>
-                      <TableCell>{row.days}</TableCell>
+                      <TableCell>{Math.round(row.days)}</TableCell>
                       <TableCell><span className={`px-2 py-1 rounded text-xs font-medium ${badgeClass(row.status)}`}>{statusLabel(row.status)}</span></TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-2">
@@ -450,7 +450,7 @@ export default function LeaveRequestPage() {
               </div>
               <div>
                 <label className="text-xs text-muted-foreground">Số ngày</label>
-                <Input type="number" min="0.5" step="0.5" value={form.days} onChange={(e) => setForm((prev) => ({ ...prev, days: Number(e.target.value) }))} />
+                <Input type="number" min="1" step="1" value={Math.round(form.days)} onChange={(e) => setForm((prev) => ({ ...prev, days: Number(e.target.value) }))} />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground">Attachment URL</label>
@@ -480,8 +480,8 @@ export default function LeaveRequestPage() {
                 {myBalances.map((balance) => (
                   <div key={balance.id} className="rounded border p-3">
                     <div className="text-xs text-muted-foreground">{balance.leaveTypeName}</div>
-                    <div className="text-sm mt-1">Con lai: <strong>{balance.remainingDays}</strong> ngay</div>
-                    <div className="text-xs text-muted-foreground mt-1">Tổng: {balance.totalDays} | Đã dùng: {balance.usedDays} | Chuyển năm: {balance.carryOverDays}</div>
+                    <div className="text-sm mt-1">Con lai: <strong>{Math.round(balance.remainingDays)}</strong> ngay</div>
+                    <div className="text-xs text-muted-foreground mt-1">Tổng: {Math.round(balance.totalDays)} | Đã dùng: {Math.round(balance.usedDays)} | Chuyển năm: {Math.round(balance.carryOverDays)}</div>
                   </div>
                 ))}
               </div>
@@ -537,10 +537,10 @@ export default function LeaveRequestPage() {
                   ) : adminBalances.map((balance) => (
                     <TableRow key={balance.id}>
                       <TableCell>{balance.leaveTypeName}</TableCell>
-                      <TableCell>{balance.totalDays}</TableCell>
-                      <TableCell>{balance.usedDays}</TableCell>
-                      <TableCell>{balance.carryOverDays}</TableCell>
-                      <TableCell>{balance.remainingDays}</TableCell>
+                      <TableCell>{Math.round(balance.totalDays)}</TableCell>
+                      <TableCell>{Math.round(balance.usedDays)}</TableCell>
+                      <TableCell>{Math.round(balance.carryOverDays)}</TableCell>
+                      <TableCell>{Math.round(balance.remainingDays)}</TableCell>
                       <TableCell>
                         <Button size="sm" variant="outline" onClick={() => void handleUpdateBalance(balance)}>
                           Cập nhật

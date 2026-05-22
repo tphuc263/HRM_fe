@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Search,
@@ -162,6 +163,9 @@ export default function EmployeeListPage() {
   const [activeDetailTab, setActiveDetailTab] = useState<'info' | 'contracts'>('info')
   const [detailContracts, setDetailContracts] = useState<ContractDto[]>([])
   
+  const { id: routeId } = useParams()
+  const navigate = useNavigate()
+  
   const [showContractForm, setShowContractForm] = useState(false)
   const [contractForm, setContractForm] = useState<ContractUpsertPayload>({
     employeeId: 0,
@@ -290,7 +294,12 @@ export default function EmployeeListPage() {
     }
   }
 
-  const openDetailModal = async (employeeId: number) => {
+  const openDetailModal = async (employeeId: number, skipUrlUpdate = false) => {
+    if (!skipUrlUpdate) {
+      navigate(`/admin/employees/${employeeId}`)
+      return
+    }
+    
     setShowDetailModal(true)
     setDetailEmployee(null)
     setDetailLoading(true)
@@ -308,11 +317,27 @@ export default function EmployeeListPage() {
       }
     } catch (err) {
       alert((err as Error).message)
-      setShowDetailModal(false)
+      handleCloseDetailModal()
     } finally {
       setDetailLoading(false)
     }
   }
+
+  const handleCloseDetailModal = () => {
+    navigate('/admin/employees')
+    setShowDetailModal(false)
+  }
+
+  useEffect(() => {
+    if (routeId) {
+      const id = Number(routeId)
+      if (!isNaN(id)) {
+        void openDetailModal(id, true)
+      }
+    } else {
+      setShowDetailModal(false)
+    }
+  }, [routeId])
 
   const handleCreateContract = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -817,7 +842,7 @@ export default function EmployeeListPage() {
       )}
 
       {showDetailModal && (
-        <EmployeeModal title="Thông tin nhân viên" onClose={() => setShowDetailModal(false)}>
+        <EmployeeModal title="Thông tin nhân viên" onClose={handleCloseDetailModal}>
           {detailLoading && (
             <div className="py-8 text-center text-muted-foreground">Đang tải chi tiết...</div>
           )}

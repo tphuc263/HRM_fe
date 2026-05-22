@@ -24,6 +24,9 @@ export const attendanceService = {
   getDaily(query: DailyAttendanceQuery) {
     return apiClient.get<PageData<AttendanceRecordDto>>('/attendance/daily', { params: query })
   },
+  getRange(query: { fromDate: string; toDate: string; status?: string; keyword?: string; page?: number; size?: number; sortBy?: string; sortDir?: string }) {
+    return apiClient.get<PageData<AttendanceRecordDto>>('/attendance/range', { params: query })
+  },
   getEmployeeRecords(employeeId: number, query: AttendanceListQuery) {
     return apiClient.get<PageData<AttendanceRecordDto>>(`/attendance/employee/${employeeId}`, { params: query })
   },

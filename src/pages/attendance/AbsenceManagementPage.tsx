@@ -35,7 +35,13 @@ export default function AbsenceManagementPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
-  const [date, setDate] = useState(toIsoDate(new Date()))
+  const [fromDate, setFromDate] = useState(() => {
+    const d = new Date()
+    d.setDate(1)
+    return toIsoDate(d)
+  })
+  const [toDate, setToDate] = useState(toIsoDate(new Date()))
+  const [markDate, setMarkDate] = useState(toIsoDate(new Date()))
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
@@ -63,22 +69,23 @@ export default function AbsenceManagementPage() {
     setError('')
     try {
       if (isAdmin) {
-        const data = await attendanceService.getDaily({
-          date,
+        const data = await attendanceService.getRange({
+          fromDate,
+          toDate,
           status: 'ABSENT',
           keyword: search.trim() || undefined,
           page: currentPage - 1,
           size: PAGE_SIZE,
-          sortBy: 'employee.code',
-          sortDir: 'asc',
+          sortBy: 'date',
+          sortDir: 'desc',
         })
         setRows(data.content)
         setTotalPages(Math.max(1, data.totalPages))
         setTotalItems(data.totalElements)
       } else {
         const data = await attendanceService.getMyRecords({
-          from: date,
-          to: date,
+          from: fromDate,
+          to: toDate,
           status: 'ABSENT',
           page: currentPage - 1,
           size: PAGE_SIZE,
@@ -97,7 +104,7 @@ export default function AbsenceManagementPage() {
     } finally {
       setLoading(false)
     }
-  }, [currentPage, date, isAdmin, search])
+  }, [currentPage, fromDate, toDate, isAdmin, search])
 
   useEffect(() => {
     void loadData()
@@ -111,14 +118,14 @@ export default function AbsenceManagementPage() {
     if (currentPage !== 1) {
       setCurrentPage(1)
     }
-  }, [date, search])
+  }, [fromDate, toDate, search])
 
   const handleMarkAbsent = async () => {
     if (!isAdmin || !employeeId) return
 
     setMarking(true)
     try {
-      await attendanceService.markAbsent(employeeId, date, note || undefined)
+      await attendanceService.markAbsent(employeeId, markDate, note || undefined)
       setNote('')
       await loadData()
     } catch (err) {
@@ -151,7 +158,7 @@ export default function AbsenceManagementPage() {
               </div>
               <div>
                 <label className="text-sm text-muted-foreground mb-1 block">Ngày vắng</label>
-                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                <Input type="date" value={markDate} onChange={(e) => setMarkDate(e.target.value)} />
               </div>
               <div>
                 <label className="text-sm text-muted-foreground mb-1 block">Lý do</label>
@@ -166,13 +173,18 @@ export default function AbsenceManagementPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="text-sm text-muted-foreground mb-1 block">Tìm kiếm</label>
               <div className="relative"><Input placeholder="Tìm tên/mã/lý do" className="pr-8" value={search} onChange={(e) => setSearch(e.target.value)} /><Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /></div>
             </div>
-            <div><label className="text-sm text-muted-foreground mb-1 block">Theo ngày</label>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <div>
+              <label className="text-sm text-muted-foreground mb-1 block">Từ ngày</label>
+              <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm text-muted-foreground mb-1 block">Đến ngày</label>
+              <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
             </div>
             <div className="flex items-end">
               <Button variant="outline" onClick={() => void loadData()}>

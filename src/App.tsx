@@ -36,7 +36,7 @@ function HomeRedirect() {
   if (user?.role === 'ADMIN') {
     return <Navigate to="/admin" replace />
   }
-  return <Navigate to="/attendance/daily" replace />
+  return <Navigate to={`/employees/${user?.userId}/attendance/daily`} replace />
 }
 
 function App() {
@@ -48,6 +48,7 @@ function App() {
 
         <Route path="/admin" element={<ProtectedPage allowedRoles={['ADMIN']}><DashboardPage /></ProtectedPage>} />
         <Route path="/admin/employees" element={<ProtectedPage allowedRoles={['ADMIN']}><EmployeeListPage /></ProtectedPage>} />
+        <Route path="/admin/employees/:id" element={<ProtectedPage allowedRoles={['ADMIN']}><EmployeeListPage /></ProtectedPage>} />
         <Route path="/admin/attendance/daily" element={<ProtectedPage allowedRoles={['ADMIN']}><DailyAttendancePage /></ProtectedPage>} />
         <Route path="/admin/attendance/monthly" element={<ProtectedPage allowedRoles={['ADMIN']}><MonthlyAttendancePage /></ProtectedPage>} />
         <Route path="/admin/attendance/overtime" element={<ProtectedPage allowedRoles={['ADMIN']}><OvertimeRegistrationPage /></ProtectedPage>} />
@@ -59,15 +60,12 @@ function App() {
         <Route path="/admin/shifts" element={<ProtectedPage allowedRoles={['ADMIN']}><ShiftListPage /></ProtectedPage>} />
         <Route path="/admin/holidays" element={<ProtectedPage allowedRoles={['ADMIN']}><HolidayListPage /></ProtectedPage>} />
 
-        <Route path="/employees" element={<ProtectedPage allowedRoles={['ADMIN']}><EmployeeListPage /></ProtectedPage>} />
-        <Route path="/attendance/daily" element={<ProtectedPage><DailyAttendancePage /></ProtectedPage>} />
-        <Route path="/attendance/monthly" element={<ProtectedPage><MonthlyAttendancePage /></ProtectedPage>} />
-        <Route path="/attendance/overtime" element={<ProtectedPage><OvertimeRegistrationPage /></ProtectedPage>} />
-        <Route path="/attendance/leave-request" element={<ProtectedPage><LeaveRequestPage /></ProtectedPage>} />
-        <Route path="/attendance/absence" element={<ProtectedPage><AbsenceManagementPage /></ProtectedPage>} />
-        <Route path="/payroll/manage" element={<ProtectedPage allowedRoles={['ADMIN']}><PayrollListPage /></ProtectedPage>} />
-
-        <Route path="/payroll/my-salary" element={<ProtectedPage><MyPayrollPage /></ProtectedPage>} />
+        <Route path="/employees/:userId/attendance/daily" element={<ProtectedPage><DailyAttendancePage /></ProtectedPage>} />
+        <Route path="/employees/:userId/attendance/monthly" element={<ProtectedPage><MonthlyAttendancePage /></ProtectedPage>} />
+        <Route path="/employees/:userId/attendance/overtime" element={<ProtectedPage><OvertimeRegistrationPage /></ProtectedPage>} />
+        <Route path="/employees/:userId/attendance/leave-request" element={<ProtectedPage><LeaveRequestPage /></ProtectedPage>} />
+        <Route path="/employees/:userId/attendance/absence" element={<ProtectedPage><AbsenceManagementPage /></ProtectedPage>} />
+        <Route path="/employees/:userId/payroll/my-salary" element={<ProtectedPage><MyPayrollPage /></ProtectedPage>} />
       </Routes>
     </BrowserRouter>
   )
