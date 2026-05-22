@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Plus, Pencil, Trash2, X, Loader2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, X, Loader2, Building2 } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { departmentService } from '../../services/departmentService'
+import { useToast } from '../../context/ToastContext'
 import type { DepartmentDto, DepartmentUpsertPayload } from '../../types/hrm'
 
 function DepartmentModal({
@@ -36,6 +37,7 @@ const initialForm: DepartmentUpsertPayload = {
 }
 
 export default function DepartmentListPage() {
+  const toast = useToast()
   const [departments, setDepartments] = useState<DepartmentDto[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -93,7 +95,7 @@ export default function DepartmentListPage() {
       await departmentService.delete(id)
       await loadDepartments()
     } catch (err) {
-      alert((err as Error).message)
+      toast.error((err as Error).message)
     } finally {
       setActionLoading(false)
     }
@@ -141,8 +143,12 @@ export default function DepartmentListPage() {
 
   return (
     <div className="flex flex-col h-full">
+      <div className="bg-[#3d6b59] h-12 flex items-center px-6 shadow-md z-10 shrink-0">
+        <Building2 className="text-white h-5 w-5 mr-2" />
+        <span className="text-white font-bold tracking-wide">DANH SÁCH PHÒNG BAN</span>
+      </div>
       <div className="flex items-center justify-between px-4 py-3 border-b bg-background">
-        <h1 className="text-lg font-semibold">Danh sách phòng ban</h1>
+        <div></div>
         <Button size="sm" onClick={openCreateModal} disabled={actionLoading}>
           <Plus className="h-4 w-4 mr-1" />
           Thêm phòng ban

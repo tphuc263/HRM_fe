@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { RefreshCw, Search, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
+import { RefreshCw, Search, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, UserMinus } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
@@ -137,9 +137,12 @@ export default function AbsenceManagementPage() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="bg-[#3d6b59] h-10 flex items-center px-4"><span className="text-white text-sm font-medium">TIME365</span></div>
+      <div className="bg-[#3d6b59] h-12 flex items-center px-6 shadow-md z-10">
+        <UserMinus className="text-white h-5 w-5 mr-2" />
+        <span className="text-white font-bold tracking-wide">QUẢN LÝ VẮNG</span>
+      </div>
       <div className="p-6 overflow-auto flex-1">
-        <div className="mb-4"><h1 className="text-2xl font-semibold text-foreground">Quản lý vắng</h1></div>
+
 
         <div className="bg-white border rounded-md p-4 mb-4 space-y-4">
           {isAdmin && (

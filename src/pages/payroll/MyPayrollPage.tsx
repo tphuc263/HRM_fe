@@ -54,15 +54,18 @@ export default function MyPayrollPage() {
   const endItem = Math.min(currentPage * PAGE_SIZE, totalItems);
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 p-6 overflow-auto">
-      <div className="max-w-5xl mx-auto w-full space-y-6">
+    <div className="flex flex-col h-full bg-gray-50 flex-1 overflow-hidden">
+      <div className="bg-[#3d6b59] h-12 flex items-center px-6 shadow-md z-10 shrink-0">
+        <Wallet className="text-white h-5 w-5 mr-2" />
+        <span className="text-white font-bold tracking-wide">LƯƠNG CỦA TÔI</span>
+      </div>
+      <div className="p-6 overflow-auto">
+        <div className="max-w-5xl mx-auto w-full space-y-6">
         
         {/* Header */}
         <div className="flex items-center justify-between bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Wallet className="w-7 h-7 text-primary" /> Lương của tôi
-            </h1>
+            <div></div>
             <p className="text-gray-500 mt-1">Lịch sử các phiếu lương đã được duyệt.</p>
           </div>
         </div>
@@ -187,6 +190,7 @@ export default function MyPayrollPage() {
           </div>
           </>
         )}
+        </div>
       </div>
     </div>
   );

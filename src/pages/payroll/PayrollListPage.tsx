@@ -5,6 +5,7 @@ import { Input } from '../../components/ui/input';
 import { Checkbox } from '../../components/ui/checkbox';
 import { payrollApi } from '../../lib/api/payrollApi';
 import { departmentService } from '../../services/departmentService';
+import { useToast } from '../../context/ToastContext';
 import type { PayrollResponse, PayrollUpdateRequest } from '../../types/payroll';
 import type { DepartmentDto } from '../../types/hrm';
 import PayrollStatusBadge from '../../components/payroll/PayrollStatusBadge';
@@ -19,6 +20,7 @@ const formatCurrency = (amount: number) => {
 const PAGE_SIZE = 10;
 
 export default function PayrollListPage() {
+  const toast = useToast()
   const [payrolls, setPayrolls] = useState<PayrollResponse[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   
@@ -113,7 +115,7 @@ export default function PayrollListPage() {
       }
     } catch (err) {
       console.error("Tạo bảng lương thất bại", err);
-      alert("Tạo bảng lương thất bại");
+      toast.error("Tạo bảng lương thất bại");
     }
   };
 
@@ -125,7 +127,7 @@ export default function PayrollListPage() {
       fetchPayrolls();
     } catch (err) {
       console.error("Sửa bảng lương thất bại", err);
-      alert("Sửa bảng lương thất bại");
+      toast.error("Sửa bảng lương thất bại");
     }
   };
 
@@ -140,7 +142,7 @@ export default function PayrollListPage() {
       fetchPayrolls();
     } catch (err) {
       console.error("Cập nhật hàng loạt thất bại", err);
-      alert("Cập nhật hàng loạt thất bại");
+      toast.error("Cập nhật hàng loạt thất bại");
     }
   };
 
@@ -152,7 +154,7 @@ export default function PayrollListPage() {
         fetchPayrolls();
       } catch (err) {
         console.error(err);
-        alert("Chốt lương thất bại");
+        toast.error("Chốt lương thất bại");
       }
     }
   };
@@ -164,7 +166,7 @@ export default function PayrollListPage() {
         fetchPayrolls();
       } catch (err) {
         console.error(err);
-        alert("Duyệt lương thất bại");
+        toast.error("Duyệt lương thất bại");
       }
     }
   };
@@ -183,10 +185,12 @@ export default function PayrollListPage() {
 
   return (
     <div className="flex flex-col h-full bg-gray-50/50 min-h-0">
+      <div className="bg-[#3d6b59] h-12 flex items-center px-6 shadow-md z-10 shrink-0">
+        <ListChecks className="text-white h-5 w-5 mr-2" />
+        <span className="text-white font-bold tracking-wide">QUẢN LÝ LƯƠNG</span>
+      </div>
       <div className="flex items-center justify-between px-6 py-4 border-b bg-white">
-        <h1 className="text-xl font-bold flex items-center gap-2">
-          <ListChecks className="w-5 h-5 text-primary" /> Quản lý Lương
-        </h1>
+        <div></div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 bg-gray-50 border rounded-md px-3 py-1.5 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
             <Calendar className="w-4 h-4 text-gray-500" />
