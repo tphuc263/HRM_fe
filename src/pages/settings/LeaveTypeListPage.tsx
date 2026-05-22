@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Plus, Pencil, X, Loader2 } from 'lucide-react'
+import { Plus, Pencil, X, Loader2, FileText } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Checkbox } from '../../components/ui/checkbox'
@@ -132,8 +132,12 @@ export default function LeaveTypeListPage() {
 
   return (
     <div className="flex flex-col h-full">
+      <div className="bg-[#3d6b59] h-12 flex items-center px-6 shadow-md z-10 shrink-0">
+        <FileText className="text-white h-5 w-5 mr-2" />
+        <span className="text-white font-bold tracking-wide">DANH MỤC LOẠI PHÉP</span>
+      </div>
       <div className="flex items-center justify-between px-4 py-3 border-b bg-background">
-        <h1 className="text-lg font-semibold">Danh mục loại phép</h1>
+        <div></div>
         <Button size="sm" onClick={openCreateModal}>
           <Plus className="h-4 w-4 mr-1" />
           Thêm loại phép

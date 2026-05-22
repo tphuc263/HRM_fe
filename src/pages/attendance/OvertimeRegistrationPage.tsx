@@ -228,10 +228,7 @@ export default function OvertimeRegistrationPage() {
       <div className="flex-1 overflow-auto p-4 md:p-8">
         <div className="max-w-7xl mx-auto space-y-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Tăng ca & Đăng ký</h1>
-              <p className="text-slate-500 font-medium">Theo dõi và đăng ký làm thêm giờ trong hệ thống.</p>
-            </div>
+            <div></div>
             {!isAdmin && (
               <Button 
                 onClick={() => setIsModalOpen(true)}

@@ -11,6 +11,7 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  Calendar,
 } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
@@ -211,13 +212,14 @@ export default function DailyAttendancePage() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="bg-[#3d6b59] h-10 flex items-center px-4">
-        <span className="text-white text-sm font-medium">TIME365</span>
+      <div className="bg-[#3d6b59] h-12 flex items-center px-6 shadow-md z-10">
+        <Calendar className="text-white h-5 w-5 mr-2" />
+        <span className="text-white font-bold tracking-wide">CÔNG NGÀY</span>
       </div>
 
       <div className="p-6 overflow-auto flex-1">
         <div className="mb-4 flex items-center justify-between gap-4">
-          <h1 className="text-2xl font-semibold text-foreground">Công ngày</h1>
+          <div></div>
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={handleExport}>
               <FileDown className="h-4 w-4" />

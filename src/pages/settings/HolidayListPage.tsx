@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Plus, Pencil, Trash2, X, Loader2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, X, Loader2, Calendar } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Checkbox } from '../../components/ui/checkbox'
 import { holidayService } from '../../services/holidayService'
+import { useToast } from '../../context/ToastContext'
 import type { HolidayDto, HolidayUpsertPayload } from '../../types/attendance'
 import { formatDate } from '../../lib/utils'
 
@@ -38,6 +39,7 @@ const initialForm: HolidayUpsertPayload = {
 }
 
 export default function HolidayListPage() {
+  const toast = useToast()
   const [holidays, setHolidays] = useState<HolidayDto[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -95,7 +97,7 @@ export default function HolidayListPage() {
       await holidayService.delete(id)
       await loadHolidays()
     } catch (err) {
-      alert((err as Error).message)
+      toast.error((err as Error).message)
     } finally {
       setActionLoading(false)
     }
@@ -135,8 +137,12 @@ export default function HolidayListPage() {
 
   return (
     <div className="flex flex-col h-full">
+      <div className="bg-[#3d6b59] h-12 flex items-center px-6 shadow-md z-10 shrink-0">
+        <Calendar className="text-white h-5 w-5 mr-2" />
+        <span className="text-white font-bold tracking-wide">DANH SÁCH NGÀY LỄ</span>
+      </div>
       <div className="flex items-center justify-between px-4 py-3 border-b bg-background">
-        <h1 className="text-lg font-semibold">Danh sách ngày lễ</h1>
+        <div></div>
         <Button size="sm" onClick={openCreateModal} disabled={actionLoading}>
           <Plus className="h-4 w-4 mr-1" />
           Thêm ngày lễ

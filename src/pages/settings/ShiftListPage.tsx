@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Plus, Pencil, Trash2, X, Loader2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, X, Loader2, Clock } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Checkbox } from '../../components/ui/checkbox'
 import { shiftService } from '../../services/shiftService'
+import { useToast } from '../../context/ToastContext'
 import type { ShiftDto, ShiftUpsertPayload } from '../../types/attendance'
 
 function ShiftModal({
@@ -55,6 +56,7 @@ const formatTimeOutput = (timeStr: string) => {
 }
 
 export default function ShiftListPage() {
+  const toast = useToast()
   const [shifts, setShifts] = useState<ShiftDto[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -117,7 +119,7 @@ export default function ShiftListPage() {
       await shiftService.delete(id)
       await loadShifts()
     } catch (err) {
-      alert((err as Error).message)
+      toast.error((err as Error).message)
     } finally {
       setActionLoading(false)
     }
@@ -168,8 +170,12 @@ export default function ShiftListPage() {
 
   return (
     <div className="flex flex-col h-full">
+      <div className="bg-[#3d6b59] h-12 flex items-center px-6 shadow-md z-10 shrink-0">
+        <Clock className="text-white h-5 w-5 mr-2" />
+        <span className="text-white font-bold tracking-wide">DANH SÁCH CA LÀM VIỆC</span>
+      </div>
       <div className="flex items-center justify-between px-4 py-3 border-b bg-background">
-        <h1 className="text-lg font-semibold">Danh sách ca làm việc</h1>
+        <div></div>
         <Button size="sm" onClick={openCreateModal} disabled={actionLoading}>
           <Plus className="h-4 w-4 mr-1" />
           Thêm ca làm việc

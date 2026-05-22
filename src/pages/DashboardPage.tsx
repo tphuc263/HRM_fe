@@ -9,6 +9,7 @@ import {
   UserCheck,
   Users,
   Wallet,
+  LayoutDashboard,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Badge } from '../components/ui/badge'
@@ -340,10 +341,15 @@ export default function DashboardPage() {
   ])
 
   return (
-    <div className="h-full overflow-auto bg-slate-50">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <section className="flex items-center justify-between rounded-lg border bg-white px-6 py-4">
-          <h1 className="text-xl font-bold text-foreground">Dashboard</h1>
+    <div className="h-full flex flex-col overflow-hidden bg-slate-50">
+      <div className="bg-[#3d6b59] h-12 flex items-center px-6 shadow-md z-10 shrink-0">
+        <LayoutDashboard className="text-white h-5 w-5 mr-2" />
+        <span className="text-white font-bold tracking-wide">DASHBOARD</span>
+      </div>
+      <div className="flex-1 overflow-auto">
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+          <section className="flex items-center justify-between rounded-lg border bg-white px-6 py-4">
+            <div></div>
           <span className="text-sm text-muted-foreground">
             {new Date().toLocaleDateString('vi-VN', {
               weekday: 'long',
@@ -598,6 +604,7 @@ export default function DashboardPage() {
             </div>
           </section>
         )}
+        </div>
       </div>
     </div>
   )

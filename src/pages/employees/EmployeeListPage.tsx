@@ -15,6 +15,7 @@ import {
   ChevronsRight,
   X,
   Loader2,
+  Users,
 } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
@@ -23,6 +24,7 @@ import { Checkbox } from '../../components/ui/checkbox'
 import { employeeService } from '../../services/employeeService'
 import { departmentService } from '../../services/departmentService'
 import { contractService } from '../../services/contractService'
+import { useToast } from '../../context/ToastContext'
 import type { EmployeeDto, EmployeeListQuery, EmployeeUpsertPayload, ContractDto, ContractUpsertPayload } from '../../types/hrm'
 import { useAuth } from '../../context/useAuth'
 
@@ -143,6 +145,7 @@ function EmployeeModal({
 export default function EmployeeListPage() {
   const { user } = useAuth()
   const isAdmin = user?.role === 'ADMIN'
+  const toast = useToast()
 
   const [draftFilters, setDraftFilters] = useState<FilterState>(defaultFilters)
   const [filters, setFilters] = useState<FilterState>(defaultFilters)
@@ -316,7 +319,7 @@ export default function EmployeeListPage() {
         console.warn('Lỗi lấy danh sách hợp đồng', e)
       }
     } catch (err) {
-      alert((err as Error).message)
+      toast.error((err as Error).message)
       handleCloseDetailModal()
     } finally {
       setDetailLoading(false)
@@ -353,7 +356,7 @@ export default function EmployeeListPage() {
       setDetailContracts(refreshed)
       setShowContractForm(false)
     } catch (err) {
-      alert((err as Error).message)
+      toast.error((err as Error).message)
     } finally {
       setContractLoading(false)
     }
@@ -428,7 +431,7 @@ export default function EmployeeListPage() {
     try {
       await deleteMutation.mutateAsync(selectedIds)
     } catch (err) {
-      alert((err as Error).message)
+      toast.error((err as Error).message)
     }
   }
 
@@ -440,7 +443,7 @@ export default function EmployeeListPage() {
     try {
       await resignMutation.mutateAsync({ id: employee.id, date: resignationDate || undefined })
     } catch (err) {
-      alert((err as Error).message)
+      toast.error((err as Error).message)
     }
   }
 
@@ -493,7 +496,7 @@ export default function EmployeeListPage() {
       const dateLabel = new Date().toISOString().slice(0, 10)
       downloadCsv(`employees-${dateLabel}.csv`, rows)
     } catch (err) {
-      alert((err as Error).message)
+      toast.error((err as Error).message)
     } finally {
       setActionLoading(false)
     }
@@ -501,6 +504,10 @@ export default function EmployeeListPage() {
 
   return (
     <div className="flex flex-col h-full">
+      <div className="bg-[#3d6b59] h-12 flex items-center px-6 shadow-md z-10 shrink-0">
+        <Users className="text-white h-5 w-5 mr-2" />
+        <span className="text-white font-bold tracking-wide">DANH SÁCH NHÂN VIÊN</span>
+      </div>
       <div className="flex items-center gap-4 px-4 py-3 border-b bg-background flex-wrap">
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground whitespace-nowrap">Nhân viên</span>
@@ -961,7 +968,7 @@ export default function EmployeeListPage() {
                                   await contractService.activate(contract.id);
                                   const refreshed = await contractService.getByEmployee(detailEmployee.id);
                                   setDetailContracts(refreshed);
-                                } catch (e) { alert((e as Error).message) }
+                                } catch (e) { toast.error((e as Error).message) }
                               }}>Kích hoạt</Button>
                             )}
                             {isAdmin && contract.status === 'ACTIVE' && (
@@ -971,7 +978,7 @@ export default function EmployeeListPage() {
                                   await contractService.terminate(contract.id);
                                   const refreshed = await contractService.getByEmployee(detailEmployee.id);
                                   setDetailContracts(refreshed);
-                                } catch (e) { alert((e as Error).message) }
+                                } catch (e) { toast.error((e as Error).message) }
                               }}>Chấm dứt</Button>
                             )}
                           </div>
