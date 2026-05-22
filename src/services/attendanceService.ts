@@ -9,11 +9,11 @@ import type {
 import type { PageData } from '../types/api'
 
 export const attendanceService = {
-  checkIn() {
-    return apiClient.post<AttendanceRecordDto>('/attendance/check-in')
+  checkIn(payload?: { latitude?: number; longitude?: number }) {
+    return apiClient.post<AttendanceRecordDto>('/attendance/check-in', payload)
   },
-  checkOut() {
-    return apiClient.post<AttendanceRecordDto>('/attendance/check-out')
+  checkOut(payload?: { latitude?: number; longitude?: number }) {
+    return apiClient.post<AttendanceRecordDto>('/attendance/check-out', payload)
   },
   getToday() {
     return apiClient.get<AttendanceRecordDto>('/attendance/today')

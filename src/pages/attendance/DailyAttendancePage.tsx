@@ -65,6 +65,67 @@ function downloadCsv(fileName: string, rows: string[][]) {
   URL.revokeObjectURL(url)
 }
 
+function getCoordinates(): Promise<{ latitude: number; longitude: number }> {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('Trinh duyet khong ho tro GPS. Vui long dung thiet bi/trinh duyet co dinh vi.'))
+      return
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        })
+      },
+      (error) => {
+        console.warn('Lỗi định vị GPS:', error)
+        reject(new Error('Khong lay duoc GPS. Vui long cap quyen dinh vi de cham cong.'))
+      },
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+    )
+  })
+}
+
+function renderVerificationBadge(
+  ipValid?: boolean | null,
+  gpsValid?: boolean | null,
+  ip?: string | null,
+  lat?: number | null,
+  lng?: number | null
+) {
+  if (ipValid == null && gpsValid == null) return null
+
+  return (
+    <div className="flex flex-col gap-0.5 mt-1 text-[10px] select-none">
+      {ipValid != null && (
+        <span
+          className={`px-1 py-0.5 rounded-[3px] font-medium border inline-block w-fit cursor-help ${
+            ipValid
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              : 'bg-rose-50 text-rose-700 border-rose-200'
+          }`}
+          title={ip ? `IP: ${ip}` : 'Không xác định IP'}
+        >
+          🌐 IP: {ipValid ? 'Văn phòng' : 'Mạng ngoài'}
+        </span>
+      )}
+      {gpsValid != null && (
+        <span
+          className={`px-1 py-0.5 rounded-[3px] font-medium border inline-block w-fit cursor-help ${
+            gpsValid
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              : 'bg-rose-50 text-rose-700 border-rose-200'
+          }`}
+          title={lat != null && lng != null ? `GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)}` : 'Không xác định GPS'}
+        >
+          📍 GPS: {gpsValid ? 'Khớp' : 'Lệch'}
+        </span>
+      )}
+    </div>
+  )
+}
+
 export default function DailyAttendancePage() {
   const { user } = useAuth()
   const isAdmin = user?.role === 'ADMIN'
@@ -135,8 +196,10 @@ export default function DailyAttendancePage() {
 
   const handleCheckIn = async () => {
     setActionLoading(true)
+    setError('')
     try {
-      await attendanceService.checkIn()
+      const coords = await getCoordinates()
+      await attendanceService.checkIn(coords)
       await loadData()
     } catch (err) {
       setError((err as Error).message)
@@ -147,8 +210,10 @@ export default function DailyAttendancePage() {
 
   const handleCheckOut = async () => {
     setActionLoading(true)
+    setError('')
     try {
-      await attendanceService.checkOut()
+      const coords = await getCoordinates()
+      await attendanceService.checkOut(coords)
       await loadData()
     } catch (err) {
       setError((err as Error).message)
@@ -300,8 +365,14 @@ export default function DailyAttendancePage() {
                     <TableCell className="font-medium">{row.employeeCode}</TableCell>
                     <TableCell>{row.employeeName}</TableCell>
                     <TableCell>{formatDate(row.date)}</TableCell>
-                    <TableCell>{formatTime(row.checkIn)}</TableCell>
-                    <TableCell>{formatTime(row.checkOut)}</TableCell>
+                    <TableCell>
+                      <span className="font-semibold">{formatTime(row.checkIn)}</span>
+                      {renderVerificationBadge(row.checkInIpValid, row.checkInGpsValid, row.checkInIp, row.checkInLat, row.checkInLng)}
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-semibold">{formatTime(row.checkOut)}</span>
+                      {renderVerificationBadge(row.checkOutIpValid, row.checkOutGpsValid, row.checkOutIp, row.checkOutLat, row.checkOutLng)}
+                    </TableCell>
                     <TableCell>{statusLabel(row.status)}</TableCell>
                     <TableCell>{row.workHours ?? 0}</TableCell>
                     <TableCell>{row.overtimeHours ?? 0}</TableCell>

@@ -11,6 +11,16 @@ export interface AttendanceRecordDto {
   workHours?: number | null
   lateMinutes?: number | null
   earlyLeaveMinutes?: number | null
+  checkInIp?: string | null
+  checkInLat?: number | null
+  checkInLng?: number | null
+  checkOutIp?: string | null
+  checkOutLat?: number | null
+  checkOutLng?: number | null
+  checkInGpsValid?: boolean | null
+  checkInIpValid?: boolean | null
+  checkOutGpsValid?: boolean | null
+  checkOutIpValid?: boolean | null
   note?: string | null
   createdAt?: string
 }
