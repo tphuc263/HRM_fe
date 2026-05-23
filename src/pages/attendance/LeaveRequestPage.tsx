@@ -287,27 +287,29 @@ export default function LeaveRequestPage() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="bg-[#3d6b59] h-12 flex items-center px-6 shadow-md z-10">
-        <FileText className="text-white h-5 w-5 mr-2" />
-        <span className="text-white font-bold tracking-wide">QUẢN LÝ ĐƠN XIN NGHỈ</span>
-      </div>
-      <div className="p-6 overflow-auto flex-1 space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <div></div>
-          <div className="flex items-center gap-2">
-            <Input
+      <div className="bg-[#3d6b59] h-12 flex items-center justify-between px-6 shadow-md z-10">
+        <div className="flex items-center">
+          <FileText className="text-white h-5 w-5 mr-2" />
+          <span className="text-white font-bold tracking-wide">QUẢN LÝ ĐƠN XIN NGHỈ</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 bg-white/20 border border-white/20 rounded-md px-3 py-1 focus-within:ring-2 focus-within:ring-white/50 transition-all">
+            <span className="text-white text-sm">Năm</span>
+            <input
               type="number"
-              className="w-28"
+              className="bg-transparent border-none text-sm text-white outline-none w-16"
               value={year}
               onChange={(e) => setYear(Number(e.target.value))}
             />
-
-            <Button onClick={() => setShowCreateForm((prev) => !prev)}>
-              <Plus className="h-4 w-4" />
-              {showCreateForm ? 'Ẩn tạo đơn mới' : 'Tạo đơn nghỉ mới'}
-            </Button>
           </div>
+          <Button variant="secondary" size="sm" onClick={() => setShowCreateForm((prev) => !prev)} className="bg-white text-[#3d6b59] hover:bg-white/90">
+            <Plus className="h-4 w-4 mr-1" />
+            {showCreateForm ? 'Ẩn tạo đơn mới' : 'Tạo đơn nghỉ mới'}
+          </Button>
         </div>
+      </div>
+      <div className="p-6 overflow-auto flex-1 space-y-4">
+
 
         <div className="bg-white border rounded-md p-4 space-y-4">
           <div className="flex flex-wrap gap-2">

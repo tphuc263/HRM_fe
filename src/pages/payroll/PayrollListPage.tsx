@@ -185,24 +185,23 @@ export default function PayrollListPage() {
 
   return (
     <div className="flex flex-col h-full bg-gray-50/50 min-h-0">
-      <div className="bg-[#3d6b59] h-12 flex items-center px-6 shadow-md z-10 shrink-0">
-        <ListChecks className="text-white h-5 w-5 mr-2" />
-        <span className="text-white font-bold tracking-wide">QUẢN LÝ LƯƠNG</span>
-      </div>
-      <div className="flex items-center justify-between px-6 py-4 border-b bg-white">
-        <div></div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 bg-gray-50 border rounded-md px-3 py-1.5 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-            <Calendar className="w-4 h-4 text-gray-500" />
+      <div className="bg-[#3d6b59] h-12 flex items-center justify-between px-6 shadow-md z-10 shrink-0">
+        <div className="flex items-center">
+          <ListChecks className="text-white h-5 w-5 mr-2" />
+          <span className="text-white font-bold tracking-wide">QUẢN LÝ LƯƠNG</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 bg-white/20 border border-white/20 rounded-md px-3 py-1 focus-within:ring-2 focus-within:ring-white/50 transition-all">
+            <Calendar className="w-4 h-4 text-white" />
             <input 
               type="month" 
-              className="bg-transparent border-none text-sm outline-none w-[130px]" 
+              className="bg-transparent border-none text-sm text-white outline-none w-[130px] [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert" 
               value={monthFilter}
               onChange={(e) => setMonthFilter(e.target.value)}
             />
           </div>
-          <Button onClick={() => setIsGenerateOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" /> Tạo bảng lương tháng
+          <Button variant="secondary" size="sm" onClick={() => setIsGenerateOpen(true)} className="bg-white text-[#3d6b59] hover:bg-white/90">
+            <Plus className="w-4 h-4 mr-1" /> Tạo bảng lương tháng
           </Button>
         </div>
       </div>
@@ -255,13 +254,7 @@ export default function PayrollListPage() {
                 Đã chọn {selectedIds.length} nhân viên
               </span>
             )}
-            <Button 
-              variant="secondary" 
-              disabled={selectedIds.length === 0}
-              onClick={() => setIsBulkOpen(true)}
-            >
-              <Edit className="w-4 h-4 mr-2" /> Cập nhật hàng loạt (Draft)
-            </Button>
+
             <Button variant="outline">
               <FileDown className="w-4 h-4 mr-2" /> Xuất Excel
             </Button>

@@ -147,7 +147,6 @@ export default function EmployeeListPage() {
   const isAdmin = user?.role === 'ADMIN'
   const toast = useToast()
 
-  const [draftFilters, setDraftFilters] = useState<FilterState>(defaultFilters)
   const [filters, setFilters] = useState<FilterState>(defaultFilters)
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [currentPage, setCurrentPage] = useState(1)
@@ -255,10 +254,7 @@ export default function EmployeeListPage() {
     )
   }
 
-  const handleApplySearch = () => {
-    setFilters(draftFilters)
-    setCurrentPage(1)
-  }
+
 
   const openCreateModal = () => {
     setFormMode('create')
@@ -515,8 +511,11 @@ export default function EmployeeListPage() {
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               placeholder="Tìm kiếm nhân viên"
-              value={draftFilters.search}
-              onChange={(e) => setDraftFilters((prev) => ({ ...prev, search: e.target.value }))}
+              value={filters.search}
+              onChange={(e) => {
+                setFilters((prev) => ({ ...prev, search: e.target.value }))
+                setCurrentPage(1)
+              }}
               className="pl-8 w-44 h-8"
             />
           </div>
@@ -525,8 +524,11 @@ export default function EmployeeListPage() {
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground whitespace-nowrap">Trạng thái</span>
           <Select
-            value={draftFilters.status}
-            onValueChange={(value) => setDraftFilters((prev) => ({ ...prev, status: value }))}
+            value={filters.status}
+            onValueChange={(value) => {
+              setFilters((prev) => ({ ...prev, status: value }))
+              setCurrentPage(1)
+            }}
           >
             <SelectTrigger className="w-40 h-8">
               <SelectValue placeholder="Trạng thái" />
@@ -542,13 +544,14 @@ export default function EmployeeListPage() {
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground whitespace-nowrap">Phòng ban</span>
           <Select
-            value={draftFilters.departmentId === 'ALL' ? 'ALL' : String(draftFilters.departmentId)}
-            onValueChange={(value) =>
-              setDraftFilters((prev) => ({
+            value={filters.departmentId === 'ALL' ? 'ALL' : String(filters.departmentId)}
+            onValueChange={(value) => {
+              setFilters((prev) => ({
                 ...prev,
                 departmentId: value === 'ALL' ? 'ALL' : Number(value),
               }))
-            }
+              setCurrentPage(1)
+            }}
           >
             <SelectTrigger className="w-48 h-8">
               <SelectValue placeholder="Phòng ban" />
@@ -565,8 +568,11 @@ export default function EmployeeListPage() {
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground whitespace-nowrap">Sắp xếp</span>
           <Select
-            value={draftFilters.sortField}
-            onValueChange={(value) => setDraftFilters((prev) => ({ ...prev, sortField: value as 'NAME' | 'SALARY' }))}
+            value={filters.sortField}
+            onValueChange={(value) => {
+              setFilters((prev) => ({ ...prev, sortField: value as 'NAME' | 'SALARY' }))
+              setCurrentPage(1)
+            }}
           >
             <SelectTrigger className="w-44 h-8">
               <SelectValue placeholder="Trường sắp xếp" />
@@ -577,8 +583,11 @@ export default function EmployeeListPage() {
             </SelectContent>
           </Select>
           <Select
-            value={draftFilters.sortDirection}
-            onValueChange={(value) => setDraftFilters((prev) => ({ ...prev, sortDirection: value as 'asc' | 'desc' }))}
+            value={filters.sortDirection}
+            onValueChange={(value) => {
+              setFilters((prev) => ({ ...prev, sortDirection: value as 'asc' | 'desc' }))
+              setCurrentPage(1)
+            }}
           >
             <SelectTrigger className="w-36 h-8">
               <SelectValue placeholder="Chiều" />
@@ -593,10 +602,7 @@ export default function EmployeeListPage() {
 
       <div className="flex items-center justify-between px-4 py-3 border-b bg-background">
         <div className="flex items-center gap-2 flex-wrap">
-          <Button size="sm" variant="default" onClick={handleApplySearch} disabled={loading}>
-            <Search className="h-3.5 w-3.5" />
-            Tìm kiếm
-          </Button>
+
           <Button size="sm" variant="default" onClick={openCreateModal} disabled={!isAdmin}>
             <UserPlus className="h-3.5 w-3.5" />
             Thêm nhân viên

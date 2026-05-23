@@ -342,23 +342,22 @@ export default function DashboardPage() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-slate-50">
-      <div className="bg-[#3d6b59] h-12 flex items-center px-6 shadow-md z-10 shrink-0">
-        <LayoutDashboard className="text-white h-5 w-5 mr-2" />
-        <span className="text-white font-bold tracking-wide">DASHBOARD</span>
+      <div className="bg-[#3d6b59] h-12 flex items-center justify-between px-6 shadow-md z-10 shrink-0">
+        <div className="flex items-center">
+          <LayoutDashboard className="text-white h-5 w-5 mr-2" />
+          <span className="text-white font-bold tracking-wide">DASHBOARD</span>
+        </div>
+        <span className="text-sm text-white/90">
+          {new Date().toLocaleDateString('vi-VN', {
+            weekday: 'long',
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+          })}
+        </span>
       </div>
       <div className="flex-1 overflow-auto">
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-          <section className="flex items-center justify-between rounded-lg border bg-white px-6 py-4">
-            <div></div>
-          <span className="text-sm text-muted-foreground">
-            {new Date().toLocaleDateString('vi-VN', {
-              weekday: 'long',
-              day: '2-digit',
-              month: '2-digit',
-              year: 'numeric',
-            })}
-          </span>
-        </section>
 
         {error && (
           <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
