@@ -8,4 +8,10 @@ export const authService = {
   me() {
     return apiClient.get<LoginResponse>('/auth/me')
   },
+  forgotPassword(payload: { email: string; newPassword: string }) {
+    return apiClient.post('/auth/forgot-password', payload)
+  },
+  verifyForgotPassword(payload: { email: string; otpCode: string }) {
+    return apiClient.post('/auth/verify-forgot-password', payload)
+  },
 }
