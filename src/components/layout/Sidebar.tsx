@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LayoutGrid, Users, ChevronDown, ChevronRight, Clock, PanelLeftClose, FileText, LogOut, Wallet, Settings } from 'lucide-react'
+import { LayoutGrid, Users, ChevronDown, ChevronRight, Clock, FileText, LogOut, Wallet, Settings } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { cn } from '../../lib/utils'
 import { useAuth } from '../../context/useAuth'
@@ -94,16 +94,13 @@ export default function Sidebar() {
 
   return (
     <aside className="w-64 border-r flex flex-col shrink-0">
-      <div className="h-12 bg-[#3d6b59] flex items-center justify-between px-4">
+      <div className="h-12 bg-[#3d6b59] flex items-center px-4">
         <Link to="/" className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-md bg-white/20 flex items-center justify-center text-white text-sm font-semibold">
             T
           </div>
           <span className="text-white font-medium">HRM System</span>
         </Link>
-        <button className="text-white/80 hover:text-white">
-          <PanelLeftClose className="h-4 w-4" />
-        </button>
       </div>
 
       <nav className="flex-1 overflow-y-auto py-2">
