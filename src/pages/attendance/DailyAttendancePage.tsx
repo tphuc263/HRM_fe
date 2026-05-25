@@ -12,6 +12,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Calendar,
+  X,
 } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
@@ -19,6 +20,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { attendanceService } from '../../services/attendanceService'
 import type { AttendanceRecordDto, AttendanceUpdatePayload } from '../../types/attendance'
 import { useAuth } from '../../context/useAuth'
+import { useToast } from '../../context/ToastContext'
 
 const PAGE_SIZE = 10
 
@@ -130,6 +132,7 @@ function renderVerificationBadge(
 export default function DailyAttendancePage() {
   const { user } = useAuth()
   const isAdmin = user?.role === 'ADMIN'
+  const toast = useToast()
 
   const [date, setDate] = useState(toIsoDate(new Date()))
   const [search, setSearch] = useState('')
@@ -140,6 +143,22 @@ export default function DailyAttendancePage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
+
+  const [editModal, setEditModal] = useState<{
+    isOpen: boolean
+    record: AttendanceRecordDto | null
+    checkIn: string
+    checkOut: string
+    status: string
+    note: string
+  }>({
+    isOpen: false,
+    record: null,
+    checkIn: '',
+    checkOut: '',
+    status: 'ON_TIME',
+    note: '',
+  })
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -223,37 +242,20 @@ export default function DailyAttendancePage() {
     }
   }
 
-  const handleAdminEdit = async (row: AttendanceRecordDto) => {
+  const handleAdminEdit = (row: AttendanceRecordDto) => {
     if (!row.id) {
       setError('Bản ghi này chưa có ID, không thể cập nhật')
       return
     }
 
-    const checkIn = window.prompt('Check-in (HH:mm, để trống nếu giữ nguyên)', row.checkIn?.slice(0, 5) || '')
-    if (checkIn === null) return
-    const checkOut = window.prompt('Check-out (HH:mm, để trống nếu giữ nguyên)', row.checkOut?.slice(0, 5) || '')
-    if (checkOut === null) return
-    const status = window.prompt('Trạng thái (ON_TIME, LATE, EARLY_LEAVE, ABSENT, HALF_DAY)', row.status || '')
-    if (status === null) return
-    const note = window.prompt('Ghi chú', row.note || '')
-    if (note === null) return
-
-    const payload: AttendanceUpdatePayload = {
-      checkIn: checkIn.trim() || undefined,
-      checkOut: checkOut.trim() || undefined,
-      status: status.trim() || undefined,
-      note: note.trim() || undefined,
-    }
-
-    setActionLoading(true)
-    try {
-      await attendanceService.adminUpdate(row.id, payload)
-      await loadData()
-    } catch (err) {
-      setError((err as Error).message)
-    } finally {
-      setActionLoading(false)
-    }
+    setEditModal({
+      isOpen: true,
+      record: row,
+      checkIn: row.checkIn?.slice(0, 5) || '',
+      checkOut: row.checkOut?.slice(0, 5) || '',
+      status: row.status || 'ON_TIME',
+      note: row.note || '',
+    })
   }
 
   const handleExport = () => {
@@ -417,6 +419,105 @@ export default function DailyAttendancePage() {
           </div>
         </div>
       </div>
+
+      {editModal.isOpen && editModal.record && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform animate-in zoom-in-95 duration-200 text-sm">
+            <div className="flex items-center justify-between px-6 py-4 border-b">
+              <h3 className="text-lg font-bold text-slate-800">Cập nhật công ngày</h3>
+              <button 
+                onClick={() => setEditModal({ isOpen: false, record: null, checkIn: '', checkOut: '', status: '', note: '' })} 
+                className="p-1 hover:bg-slate-100 rounded-full transition-colors"
+              >
+                <X className="h-5 w-5 text-slate-400" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4 text-left">
+              <p className="text-slate-600 font-medium mb-2">
+                Nhân viên: <strong>{editModal.record.employeeName}</strong> ({editModal.record.employeeCode})
+              </p>
+              <p className="text-slate-600 font-medium mb-4">
+                Ngày công: <strong>{formatDate(editModal.record.date)}</strong>
+              </p>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 block">Giờ Check-in (HH:mm)</label>
+                <Input 
+                  type="time"
+                  value={editModal.checkIn}
+                  onChange={(e) => setEditModal(prev => ({ ...prev, checkIn: e.target.value }))}
+                  className="rounded-xl border-slate-200 h-10"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 block">Giờ Check-out (HH:mm)</label>
+                <Input 
+                  type="time"
+                  value={editModal.checkOut}
+                  onChange={(e) => setEditModal(prev => ({ ...prev, checkOut: e.target.value }))}
+                  className="rounded-xl border-slate-200 h-10"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 block">Trạng thái công</label>
+                <select
+                  value={editModal.status}
+                  onChange={(e) => setEditModal(prev => ({ ...prev, status: e.target.value }))}
+                  className="flex h-10 w-full rounded-xl border border-slate-200 bg-transparent px-3 py-1 text-sm shadow-sm outline-none focus:ring-2 focus:ring-[#3d6b59]"
+                >
+                  <option value="ON_TIME">Đúng giờ (ON_TIME)</option>
+                  <option value="LATE">Đi trễ (LATE)</option>
+                  <option value="EARLY_LEAVE">Về sớm (EARLY_LEAVE)</option>
+                  <option value="ABSENT">Vắng mặt (ABSENT)</option>
+                  <option value="HALF_DAY">Nửa ngày (HALF_DAY)</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 block">Ghi chú</label>
+                <Input 
+                  type="text"
+                  placeholder="Ghi chú điều chỉnh..."
+                  value={editModal.note}
+                  onChange={(e) => setEditModal(prev => ({ ...prev, note: e.target.value }))}
+                  className="rounded-xl border-slate-200 h-10"
+                />
+              </div>
+              <div className="mt-8 flex gap-3 justify-end pt-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setEditModal({ isOpen: false, record: null, checkIn: '', checkOut: '', status: '', note: '' })} 
+                  className="rounded-xl px-6"
+                >
+                  Hủy bỏ
+                </Button>
+                <Button 
+                  onClick={async () => {
+                    setActionLoading(true)
+                    try {
+                      const payload: AttendanceUpdatePayload = {
+                        checkIn: editModal.checkIn.trim() || undefined,
+                        checkOut: editModal.checkOut.trim() || undefined,
+                        status: editModal.status.trim() || undefined,
+                        note: editModal.note.trim() || undefined,
+                      }
+                      await attendanceService.adminUpdate(editModal.record!.id!, payload)
+                      toast.success('Cập nhật công ngày thành công')
+                      await loadData()
+                      setEditModal({ isOpen: false, record: null, checkIn: '', checkOut: '', status: '', note: '' })
+                    } catch (err) {
+                      setError((err as Error).message)
+                    } finally {
+                      setActionLoading(false)
+                    }
+                  }} 
+                  className="rounded-xl px-6 bg-[#3d6b59] hover:bg-[#3d6b59]/90 text-white"
+                >
+                  Lưu thay đổi
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

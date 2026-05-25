@@ -7,6 +7,7 @@ import { holidayService } from '../../services/holidayService'
 import { useToast } from '../../context/ToastContext'
 import type { HolidayDto, HolidayUpsertPayload } from '../../types/attendance'
 import { formatDate } from '../../lib/utils'
+import { ConfirmModal } from '../../components/ui/ConfirmModal'
 
 function HolidayModal({
   title,
@@ -52,6 +53,14 @@ export default function HolidayListPage() {
   const [formError, setFormError] = useState('')
   const [formLoading, setFormLoading] = useState(false)
 
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    onConfirm: () => void
+    variant?: 'primary' | 'danger'
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => {} })
+
   const loadHolidays = useCallback(async () => {
     setLoading(true)
     setError('')
@@ -90,17 +99,25 @@ export default function HolidayListPage() {
     setShowFormModal(true)
   }
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa ngày lễ này?')) return
-    setActionLoading(true)
-    try {
-      await holidayService.delete(id)
-      await loadHolidays()
-    } catch (err) {
-      toast.error((err as Error).message)
-    } finally {
-      setActionLoading(false)
-    }
+  const handleDelete = (id: number) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Xác nhận xóa ngày lễ',
+      message: 'Bạn có chắc chắn muốn xóa ngày lễ này? Hành động này không thể hoàn tác.',
+      variant: 'danger',
+      onConfirm: async () => {
+        setActionLoading(true)
+        try {
+          await holidayService.delete(id)
+          toast.success('Đã xóa ngày lễ thành công')
+          await loadHolidays()
+        } catch (err) {
+          toast.error((err as Error).message)
+        } finally {
+          setActionLoading(false)
+        }
+      }
+    })
   }
 
   const validateForm = () => {
@@ -245,6 +262,11 @@ export default function HolidayListPage() {
           </form>
         </HolidayModal>
       )}
+
+      <ConfirmModal
+        {...confirmConfig}
+        onClose={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   )
 }

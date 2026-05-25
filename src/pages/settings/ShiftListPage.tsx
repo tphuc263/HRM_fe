@@ -6,6 +6,7 @@ import { Checkbox } from '../../components/ui/checkbox'
 import { shiftService } from '../../services/shiftService'
 import { useToast } from '../../context/ToastContext'
 import type { ShiftDto, ShiftUpsertPayload } from '../../types/attendance'
+import { ConfirmModal } from '../../components/ui/ConfirmModal'
 
 function ShiftModal({
   title,
@@ -69,6 +70,14 @@ export default function ShiftListPage() {
   const [formError, setFormError] = useState('')
   const [formLoading, setFormLoading] = useState(false)
 
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    onConfirm: () => void
+    variant?: 'primary' | 'danger'
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => {} })
+
   const loadShifts = useCallback(async () => {
     setLoading(true)
     setError('')
@@ -112,17 +121,25 @@ export default function ShiftListPage() {
     setShowFormModal(true)
   }
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa ca làm việc này?')) return
-    setActionLoading(true)
-    try {
-      await shiftService.delete(id)
-      await loadShifts()
-    } catch (err) {
-      toast.error((err as Error).message)
-    } finally {
-      setActionLoading(false)
-    }
+  const handleDelete = (id: number) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Xác nhận xóa ca làm việc',
+      message: 'Bạn có chắc chắn muốn xóa ca làm việc này? Hành động này không thể hoàn tác.',
+      variant: 'danger',
+      onConfirm: async () => {
+        setActionLoading(true)
+        try {
+          await shiftService.delete(id)
+          toast.success('Đã xóa ca làm việc thành công')
+          await loadShifts()
+        } catch (err) {
+          toast.error((err as Error).message)
+        } finally {
+          setActionLoading(false)
+        }
+      }
+    })
   }
 
   const validateForm = () => {
@@ -341,6 +358,11 @@ export default function ShiftListPage() {
           </form>
         </ShiftModal>
       )}
+
+      <ConfirmModal
+        {...confirmConfig}
+        onClose={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   )
 }

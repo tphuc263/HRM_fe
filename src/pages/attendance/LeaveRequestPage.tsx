@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useState } from 'react'
-import { ChevronDown, ChevronUp, Loader2, Plus, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, FileText } from 'lucide-react'
+import { ChevronDown, ChevronUp, Loader2, Plus, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, FileText, X } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
@@ -8,6 +8,8 @@ import { employeeService } from '../../services/employeeService'
 import type { LeaveBalanceDto, LeaveRequestCreatePayload, LeaveRequestDto, LeaveTypeDto } from '../../types/leave'
 import type { EmployeeDto } from '../../types/hrm'
 import { useAuth } from '../../context/useAuth'
+import { useToast } from '../../context/ToastContext'
+import { PromptModal } from '../../components/ui/PromptModal'
 
 type UiLeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED'
 
@@ -50,6 +52,19 @@ function getCurrentYear() {
 export default function LeaveRequestPage() {
   const { user } = useAuth()
   const isAdmin = user?.role === 'ADMIN'
+  const toast = useToast()
+
+  const [rejectPrompt, setRejectPrompt] = useState<{
+    isOpen: boolean
+    requestId: number | null
+  }>({ isOpen: false, requestId: null })
+
+  const [updateBalanceModal, setUpdateBalanceModal] = useState<{
+    isOpen: boolean
+    balance: LeaveBalanceDto | null
+    totalDays: string
+    carryOverDays: string
+  }>({ isOpen: false, balance: null, totalDays: '', carryOverDays: '' })
 
   const [activeTab, setActiveTab] = useState<UiLeaveStatus>('PENDING')
   const [expanded, setExpanded] = useState<number | null>(null)
@@ -228,19 +243,11 @@ export default function LeaveRequestPage() {
     }
   }
 
-  const handleReject = async (id: number) => {
-    const reason = window.prompt('Nhập lý do từ chối:')
-    if (!reason?.trim()) return
-
-    setActionLoadingId(id)
-    try {
-      await leaveService.rejectRequest(id, reason.trim())
-      await loadRequests()
-    } catch (err) {
-      setError((err as Error).message)
-    } finally {
-      setActionLoadingId(null)
-    }
+  const handleReject = (id: number) => {
+    setRejectPrompt({
+      isOpen: true,
+      requestId: id
+    })
   }
 
   const handleCancel = async (id: number) => {
@@ -268,21 +275,13 @@ export default function LeaveRequestPage() {
     }
   }
 
-  const handleUpdateBalance = async (balance: LeaveBalanceDto) => {
-    const total = window.prompt('Tổng ngày phép mới', String(balance.totalDays))
-    if (total === null) return
-    const carryOver = window.prompt('Ngày chuyển năm mới', String(balance.carryOverDays))
-    if (carryOver === null) return
-
-    setAdminBalanceLoading(true)
-    try {
-      await leaveService.updateBalance(balance.id, Number(total), Number(carryOver))
-      await loadAdminBalances()
-    } catch (err) {
-      setError((err as Error).message)
-    } finally {
-      setAdminBalanceLoading(false)
-    }
+  const handleUpdateBalance = (balance: LeaveBalanceDto) => {
+    setUpdateBalanceModal({
+      isOpen: true,
+      balance,
+      totalDays: String(balance.totalDays),
+      carryOverDays: String(balance.carryOverDays)
+    })
   }
 
   return (
@@ -556,6 +555,100 @@ export default function LeaveRequestPage() {
           </div>
         )}
       </div>
+
+      <PromptModal
+        isOpen={rejectPrompt.isOpen}
+        onClose={() => setRejectPrompt({ isOpen: false, requestId: null })}
+        title="Từ chối đơn xin nghỉ"
+        message="Vui lòng nhập lý do từ chối đơn xin nghỉ này:"
+        placeholder="Nhập lý do (tối thiểu 5 ký tự)..."
+        confirmText="Từ chối"
+        minChars={5}
+        onConfirm={async (reason) => {
+          if (!rejectPrompt.requestId) return
+          setActionLoadingId(rejectPrompt.requestId)
+          try {
+            await leaveService.rejectRequest(rejectPrompt.requestId, reason)
+            toast.success('Đã từ chối đơn xin nghỉ')
+            await loadRequests()
+          } catch (err) {
+            setError((err as Error).message)
+          } finally {
+            setActionLoadingId(null)
+          }
+        }}
+      />
+
+      {updateBalanceModal.isOpen && updateBalanceModal.balance && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform animate-in zoom-in-95 duration-200 text-sm">
+            <div className="flex items-center justify-between px-6 py-4 border-b">
+              <h3 className="text-lg font-bold text-slate-800">Cập nhật số dư phép</h3>
+              <button 
+                onClick={() => setUpdateBalanceModal({ isOpen: false, balance: null, totalDays: '', carryOverDays: '' })} 
+                className="p-1 hover:bg-slate-100 rounded-full transition-colors"
+              >
+                <X className="h-5 w-5 text-slate-400" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-slate-600 font-medium">
+                Cập nhật số dư phép cho loại nghỉ: <strong>{updateBalanceModal.balance.leaveTypeName}</strong>
+              </p>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500">Tổng ngày phép mới</label>
+                <Input 
+                  type="number"
+                  value={updateBalanceModal.totalDays}
+                  onChange={(e) => setUpdateBalanceModal(prev => ({ ...prev, totalDays: e.target.value }))}
+                  className="rounded-xl border-slate-200"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500">Ngày chuyển từ năm cũ (Carry Over)</label>
+                <Input 
+                  type="number"
+                  value={updateBalanceModal.carryOverDays}
+                  onChange={(e) => setUpdateBalanceModal(prev => ({ ...prev, carryOverDays: e.target.value }))}
+                  className="rounded-xl border-slate-200"
+                />
+              </div>
+              <div className="mt-8 flex gap-3 justify-end pt-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setUpdateBalanceModal({ isOpen: false, balance: null, totalDays: '', carryOverDays: '' })} 
+                  className="rounded-xl px-6"
+                >
+                  Hủy bỏ
+                </Button>
+                <Button 
+                  onClick={async () => {
+                    if (!updateBalanceModal.totalDays || !updateBalanceModal.carryOverDays) return
+                    setAdminBalanceLoading(true)
+                    try {
+                      await leaveService.updateBalance(
+                        updateBalanceModal.balance!.id, 
+                        Number(updateBalanceModal.totalDays), 
+                        Number(updateBalanceModal.carryOverDays)
+                      )
+                      toast.success('Cập nhật số dư phép thành công')
+                      await loadAdminBalances()
+                      setUpdateBalanceModal({ isOpen: false, balance: null, totalDays: '', carryOverDays: '' })
+                    } catch (err) {
+                      setError((err as Error).message)
+                    } finally {
+                      setAdminBalanceLoading(false)
+                    }
+                  }} 
+                  className="rounded-xl px-6 bg-[#3d6b59] hover:bg-[#3d6b59]/90 text-white"
+                >
+                  Cập nhật
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

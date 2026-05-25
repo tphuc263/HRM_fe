@@ -27,6 +27,7 @@ import { contractService } from '../../services/contractService'
 import { useToast } from '../../context/ToastContext'
 import type { EmployeeDto, EmployeeListQuery, EmployeeUpsertPayload, ContractDto, ContractUpsertPayload } from '../../types/hrm'
 import { useAuth } from '../../context/useAuth'
+import { ConfirmModal } from '../../components/ui/ConfirmModal'
 
 const PAGE_SIZE = 10
 
@@ -150,6 +151,20 @@ export default function EmployeeListPage() {
   const [filters, setFilters] = useState<FilterState>(defaultFilters)
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [currentPage, setCurrentPage] = useState(1)
+
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    onConfirm: () => void
+    variant?: 'primary' | 'danger'
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => {} })
+
+  const [resignModal, setResignModal] = useState<{
+    isOpen: boolean
+    employee: EmployeeDto | null
+    date: string
+  }>({ isOpen: false, employee: null, date: new Date().toISOString().slice(0, 10) })
 
   const [showFormModal, setShowFormModal] = useState(false)
   const [formMode, setFormMode] = useState<EmployeeFormMode>('create')
@@ -418,29 +433,32 @@ export default function EmployeeListPage() {
     setFormError('')
   }
 
-  const handleDeleteSelected = async () => {
+  const handleDeleteSelected = () => {
     if (!isAdmin || selectedIds.length === 0) return
 
-    const confirmed = window.confirm(`Bạn có chắc chắn xóa ${selectedIds.length} nhân viên đã chọn?`)
-    if (!confirmed) return
-
-    try {
-      await deleteMutation.mutateAsync(selectedIds)
-    } catch (err) {
-      toast.error((err as Error).message)
-    }
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Xác nhận xóa nhân viên',
+      message: `Bạn có chắc chắn xóa ${selectedIds.length} nhân viên đã chọn? Hành động này không thể hoàn tác.`,
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await deleteMutation.mutateAsync(selectedIds)
+          toast.success('Đã xóa nhân viên thành công')
+        } catch (err) {
+          toast.error((err as Error).message)
+        }
+      }
+    })
   }
 
-  const handleResign = async (employee: EmployeeDto) => {
+  const handleResign = (employee: EmployeeDto) => {
     if (!isAdmin) return
-    const resignationDate = window.prompt('Nhập ngày nghỉ việc (YYYY-MM-DD), để trống để dùng ngày hôm nay:')
-    if (resignationDate === null) return
-
-    try {
-      await resignMutation.mutateAsync({ id: employee.id, date: resignationDate || undefined })
-    } catch (err) {
-      toast.error((err as Error).message)
-    }
+    setResignModal({
+      isOpen: true,
+      employee,
+      date: new Date().toISOString().slice(0, 10)
+    })
   }
 
   const handleExport = async () => {
@@ -968,23 +986,42 @@ export default function EmployeeListPage() {
                               {contract.status}
                             </span>
                             {isAdmin && contract.status === 'DRAFT' && (
-                              <Button size="sm" variant="outline" className="h-6 text-xs px-2" onClick={async () => {
-                                if (!window.confirm('Kích hoạt hợp đồng này? Hợp đồng ACTIVE cũ (nếu có) sẽ hết hiệu lực.')) return;
-                                try {
-                                  await contractService.activate(contract.id);
-                                  const refreshed = await contractService.getByEmployee(detailEmployee.id);
-                                  setDetailContracts(refreshed);
-                                } catch (e) { toast.error((e as Error).message) }
+                              <Button size="sm" variant="outline" className="h-6 text-xs px-2" onClick={() => {
+                                setConfirmConfig({
+                                  isOpen: true,
+                                  title: 'Kích hoạt hợp đồng',
+                                  message: 'Bạn có chắc chắn muốn kích hoạt hợp đồng này? Hợp đồng ACTIVE cũ (nếu có) sẽ tự động hết hiệu lực.',
+                                  onConfirm: async () => {
+                                    try {
+                                      await contractService.activate(contract.id);
+                                      toast.success('Kích hoạt hợp đồng thành công');
+                                      if (detailEmployee) {
+                                        const refreshed = await contractService.getByEmployee(detailEmployee.id);
+                                        setDetailContracts(refreshed);
+                                      }
+                                    } catch (e) { toast.error((e as Error).message) }
+                                  }
+                                })
                               }}>Kích hoạt</Button>
                             )}
                             {isAdmin && contract.status === 'ACTIVE' && (
-                              <Button size="sm" variant="outline" className="h-6 text-xs px-2 text-destructive border-destructive" onClick={async () => {
-                                if (!window.confirm('Chấm dứt hợp đồng này?')) return;
-                                try {
-                                  await contractService.terminate(contract.id);
-                                  const refreshed = await contractService.getByEmployee(detailEmployee.id);
-                                  setDetailContracts(refreshed);
-                                } catch (e) { toast.error((e as Error).message) }
+                              <Button size="sm" variant="outline" className="h-6 text-xs px-2 text-destructive border-destructive" onClick={() => {
+                                setConfirmConfig({
+                                  isOpen: true,
+                                  title: 'Chấm dứt hợp đồng',
+                                  message: 'Bạn có chắc chắn muốn chấm dứt hợp đồng này?',
+                                  variant: 'danger',
+                                  onConfirm: async () => {
+                                    try {
+                                      await contractService.terminate(contract.id);
+                                      toast.success('Đã chấm dứt hợp đồng thành công');
+                                      if (detailEmployee) {
+                                        const refreshed = await contractService.getByEmployee(detailEmployee.id);
+                                        setDetailContracts(refreshed);
+                                      }
+                                    } catch (e) { toast.error((e as Error).message) }
+                                  }
+                                })
                               }}>Chấm dứt</Button>
                             )}
                           </div>
@@ -998,6 +1035,67 @@ export default function EmployeeListPage() {
           )}
         </EmployeeModal>
       )}
+
+      {resignModal.isOpen && resignModal.employee && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between px-6 py-4 border-b">
+              <h3 className="text-lg font-bold text-slate-800">Xác nhận nghỉ việc</h3>
+              <button 
+                onClick={() => setResignModal({ isOpen: false, employee: null, date: '' })} 
+                className="p-1 hover:bg-slate-100 rounded-full transition-colors"
+              >
+                <X className="h-5 w-5 text-slate-400" />
+              </button>
+            </div>
+            <div className="p-6">
+              <p className="text-slate-600 mb-4 font-medium">
+                Bạn đang thiết lập nghỉ việc cho nhân viên <strong>{resignModal.employee.name}</strong> ({resignModal.employee.code}).
+              </p>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500">Ngày nghỉ việc</label>
+                <Input 
+                  type="date"
+                  value={resignModal.date}
+                  onChange={(e) => setResignModal(prev => ({ ...prev, date: e.target.value }))}
+                  className="rounded-xl border-slate-200"
+                />
+              </div>
+              <div className="mt-8 flex gap-3 justify-end">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setResignModal({ isOpen: false, employee: null, date: '' })} 
+                  className="rounded-xl px-6"
+                >
+                  Hủy bỏ
+                </Button>
+                <Button 
+                  onClick={async () => {
+                    try {
+                      await resignMutation.mutateAsync({ 
+                        id: resignModal.employee!.id, 
+                        date: resignModal.date || undefined 
+                      })
+                      toast.success('Đã thiết lập nghỉ việc thành công')
+                      setResignModal({ isOpen: false, employee: null, date: '' })
+                    } catch (err) {
+                      toast.error((err as Error).message)
+                    }
+                  }} 
+                  className="rounded-xl px-6 bg-red-600 hover:bg-red-700 text-white"
+                >
+                  Xác nhận
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ConfirmModal
+        {...confirmConfig}
+        onClose={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   )
 }

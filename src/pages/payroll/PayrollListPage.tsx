@@ -12,6 +12,7 @@ import PayrollStatusBadge from '../../components/payroll/PayrollStatusBadge';
 import GeneratePayrollModal from '../../components/payroll/GeneratePayrollModal';
 import EditPayrollModal from '../../components/payroll/EditPayrollModal';
 import BulkUpdateModal from '../../components/payroll/BulkUpdateModal';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
 
 // Tiện ích format tiền VNĐ
 const formatCurrency = (amount: number) => {
@@ -29,6 +30,14 @@ export default function PayrollListPage() {
   const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingPayroll, setEditingPayroll] = useState<PayrollResponse | null>(null);
+
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    onConfirm: () => void
+    variant?: 'primary' | 'danger'
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => {} })
 
   // Filters state
   const currentMonthDate = new Date();
@@ -147,28 +156,40 @@ export default function PayrollListPage() {
   };
 
   // Actions
-  const handleSubmitStatus = async (id: number) => {
-    if (confirm("Bạn có chắc chắn muốn chốt lương (CALCULATED)?")) {
-      try {
-        await payrollApi.submitPayroll(id);
-        fetchPayrolls();
-      } catch (err) {
-        console.error(err);
-        toast.error("Chốt lương thất bại");
+  const handleSubmitStatus = (id: number) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Xác nhận chốt lương',
+      message: 'Bạn có chắc chắn muốn chốt lương (CALCULATED)? Phiếu lương sẽ được chuyển sang trạng thái chờ duyệt.',
+      onConfirm: async () => {
+        try {
+          await payrollApi.submitPayroll(id);
+          toast.success("Chốt lương thành công");
+          fetchPayrolls();
+        } catch (err) {
+          console.error(err);
+          toast.error("Chốt lương thất bại");
+        }
       }
-    }
+    });
   };
 
-  const handleApproveStatus = async (id: number) => {
-    if (confirm("Chấp nhận duyệt (APPROVED) phiếu lương này?")) {
-      try {
-        await payrollApi.approvePayroll(id);
-        fetchPayrolls();
-      } catch (err) {
-        console.error(err);
-        toast.error("Duyệt lương thất bại");
+  const handleApproveStatus = (id: number) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Xác nhận duyệt lương',
+      message: 'Bạn có chắc chắn muốn phê duyệt (APPROVED) phiếu lương này? Hành động này sẽ khóa phiếu lương.',
+      onConfirm: async () => {
+        try {
+          await payrollApi.approvePayroll(id);
+          toast.success("Duyệt lương thành công");
+          fetchPayrolls();
+        } catch (err) {
+          console.error(err);
+          toast.error("Duyệt lương thất bại");
+        }
       }
-    }
+    });
   };
 
   const toggleSelectAll = () => {
@@ -421,6 +442,10 @@ export default function PayrollListPage() {
         onClose={() => { setIsEditOpen(false); setEditingPayroll(null); }} 
         payroll={editingPayroll} 
         onUpdate={handleUpdate} 
+      />
+      <ConfirmModal 
+        {...confirmConfig}
+        onClose={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
       />
     </div>
   );
