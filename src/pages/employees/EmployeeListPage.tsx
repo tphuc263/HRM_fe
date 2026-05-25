@@ -145,8 +145,8 @@ function EmployeeModal({
 
 export default function EmployeeListPage() {
   const { user } = useAuth()
-  const isAdmin = user?.role === 'ADMIN'
   const toast = useToast()
+  const isAdmin = user?.role === 'ADMIN'
 
   const [filters, setFilters] = useState<FilterState>(defaultFilters)
   const [selectedIds, setSelectedIds] = useState<number[]>([])

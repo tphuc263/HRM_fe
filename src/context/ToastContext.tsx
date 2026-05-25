@@ -1,4 +1,4 @@
-import { createContext, useContext, ReactNode } from 'react'
+import { createContext, useContext, type ReactNode } from 'react'
 import { ToastContainer, toast, type ToastOptions } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
