@@ -5,6 +5,7 @@ import './index.css'
 import App from './App.tsx'
 import { AuthProvider } from './context/AuthContext'
 import { ToastProvider } from './context/ToastContext'
+import { ThemeProvider } from './context/ThemeContext'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -20,7 +21,9 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ToastProvider>
-          <App />
+          <ThemeProvider>
+            <App />
+          </ThemeProvider>
         </ToastProvider>
       </AuthProvider>
     </QueryClientProvider>

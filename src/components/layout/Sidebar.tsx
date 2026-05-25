@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { LayoutGrid, Users, ChevronDown, ChevronRight, Clock, FileText, LogOut, Wallet, Settings } from 'lucide-react'
+import { LayoutGrid, Users, ChevronDown, ChevronRight, Clock, FileText, LogOut, Wallet, Settings, Sun, Moon } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { cn } from '../../lib/utils'
 import { useAuth } from '../../context/useAuth'
+import { useTheme } from '../../context/ThemeContext'
 
 const adminMainNavItems = [
   { to: '/admin', label: 'Dashboard', icon: LayoutGrid },
@@ -56,6 +57,7 @@ export default function Sidebar() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, logout } = useAuth()
+  const { theme, toggleTheme } = useTheme()
   const isAdmin = user?.role === 'ADMIN'
   const userId = user?.userId
   const mainNavItems = isAdmin ? adminMainNavItems : getEmployeeMainNavItems(userId || 0)
@@ -162,8 +164,27 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div className="border-t p-3">
-        <div className="mb-2 px-1 text-xs text-muted-foreground">
+      <div className="border-t p-3 space-y-3">
+        <div className="flex items-center justify-between p-2 bg-muted/40 dark:bg-black rounded-xl border border-slate-200 dark:border-white">
+          <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 select-none">
+            {theme === 'light' ? <Sun className="h-3.5 w-3.5 text-amber-500" /> : <Moon className="h-3.5 w-3.5 text-blue-400" />}
+            {theme === 'light' ? 'Chế độ sáng' : 'Chế độ tối'}
+          </span>
+          <button
+            onClick={toggleTheme}
+            type="button"
+            className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 transition-colors duration-200 ease-in-out focus:outline-none bg-slate-200 border-slate-300 dark:bg-black dark:border-white"
+          >
+            <span
+              className={cn(
+                "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                theme === 'light' ? "translate-x-0" : "translate-x-5"
+              )}
+            />
+          </button>
+        </div>
+
+        <div className="px-1 text-xs text-muted-foreground">
           {user?.employeeName || user?.username}
           <span className="block uppercase tracking-wide">{user?.role}</span>
         </div>
