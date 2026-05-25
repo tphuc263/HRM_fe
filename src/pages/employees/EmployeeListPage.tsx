@@ -158,7 +158,7 @@ export default function EmployeeListPage() {
     message: string
     onConfirm: () => void
     variant?: 'primary' | 'danger'
-  }>({ isOpen: false, title: '', message: '', onConfirm: () => {} })
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => { } })
 
   const [resignModal, setResignModal] = useState<{
     isOpen: boolean
@@ -179,10 +179,10 @@ export default function EmployeeListPage() {
   const [detailLoading, setDetailLoading] = useState(false)
   const [activeDetailTab, setActiveDetailTab] = useState<'info' | 'contracts'>('info')
   const [detailContracts, setDetailContracts] = useState<ContractDto[]>([])
-  
+
   const { id: routeId } = useParams()
   const navigate = useNavigate()
-  
+
   const [showContractForm, setShowContractForm] = useState(false)
   const [contractForm, setContractForm] = useState<ContractUpsertPayload>({
     employeeId: 0,
@@ -313,7 +313,7 @@ export default function EmployeeListPage() {
       navigate(`/admin/employees/${employeeId}`)
       return
     }
-    
+
     setShowDetailModal(true)
     setDetailEmployee(null)
     setDetailLoading(true)
@@ -493,17 +493,17 @@ export default function EmployeeListPage() {
             return filters.sortDirection === 'asc' ? comparison : -comparison
           })
           .map((emp) => [
-          emp.code,
-          emp.name,
-          emp.email || '',
-          emp.phone || '',
-          emp.departmentName || '',
-          statusLabel(emp.status),
-          emp.currentSalary != null ? String(emp.currentSalary) : '',
-          emp.latestNetSalary != null ? String(emp.latestNetSalary) : '',
-          emp.lastPayrollMonth || '',
-          emp.joinDate || '',
-          emp.resignationDate || '',
+            emp.code,
+            emp.name,
+            emp.email || '',
+            emp.phone || '',
+            emp.departmentName || '',
+            statusLabel(emp.status),
+            emp.currentSalary != null ? String(emp.currentSalary) : '',
+            emp.latestNetSalary != null ? String(emp.latestNetSalary) : '',
+            emp.lastPayrollMonth || '',
+            emp.joinDate || '',
+            emp.resignationDate || '',
           ]),
       ]
 
@@ -942,7 +942,7 @@ export default function EmployeeListPage() {
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className="text-xs text-muted-foreground">Loại hợp đồng</label>
-                          <select className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" value={contractForm.contractType} onChange={(e) => setContractForm({...contractForm, contractType: e.target.value})}>
+                          <select className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" value={contractForm.contractType} onChange={(e) => setContractForm({ ...contractForm, contractType: e.target.value })}>
                             <option value="PROBATION">Thử việc</option>
                             <option value="DEFINITE_1YR">Có thời hạn 1 năm</option>
                             <option value="INDEFINITE">Vô thời hạn</option>
@@ -950,15 +950,15 @@ export default function EmployeeListPage() {
                         </div>
                         <div>
                           <label className="text-xs text-muted-foreground">Lương cơ bản</label>
-                          <Input type="number" required min={0} value={contractForm.basicSalary} onChange={(e) => setContractForm({...contractForm, basicSalary: Number(e.target.value)})} />
+                          <Input type="number" required min={0} value={contractForm.basicSalary} onChange={(e) => setContractForm({ ...contractForm, basicSalary: Number(e.target.value) })} />
                         </div>
                         <div>
                           <label className="text-xs text-muted-foreground">Ngày bắt đầu</label>
-                          <Input type="date" required value={contractForm.startDate} onChange={(e) => setContractForm({...contractForm, startDate: e.target.value})} />
+                          <Input type="date" required value={contractForm.startDate} onChange={(e) => setContractForm({ ...contractForm, startDate: e.target.value })} />
                         </div>
                         <div>
                           <label className="text-xs text-muted-foreground">Ngày kết thúc</label>
-                          <Input type="date" value={contractForm.endDate || ''} onChange={(e) => setContractForm({...contractForm, endDate: e.target.value})} />
+                          <Input type="date" value={contractForm.endDate || ''} onChange={(e) => setContractForm({ ...contractForm, endDate: e.target.value })} />
                         </div>
                       </div>
                       <div className="flex justify-end gap-2 pt-2">
@@ -982,12 +982,11 @@ export default function EmployeeListPage() {
                             <div className="text-xs mt-1 font-medium">Lương: {formatCurrency(contract.basicSalary)}</div>
                           </div>
                           <div className="flex flex-col items-end gap-2">
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                              contract.status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
-                              contract.status === 'DRAFT' ? 'bg-yellow-100 text-yellow-700' :
-                              contract.status === 'EXPIRED' ? 'bg-gray-100 text-gray-700' :
-                              'bg-red-100 text-red-700'
-                            }`}>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${contract.status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
+                                contract.status === 'DRAFT' ? 'bg-yellow-100 text-yellow-700' :
+                                  contract.status === 'EXPIRED' ? 'bg-gray-100 text-gray-700' :
+                                    'bg-red-100 text-red-700'
+                              }`}>
                               {contract.status}
                             </span>
                             {isAdmin && contract.status === 'DRAFT' && (
@@ -1046,8 +1045,8 @@ export default function EmployeeListPage() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between px-6 py-4 border-b">
               <h3 className="text-lg font-bold text-slate-800">Xác nhận nghỉ việc</h3>
-              <button 
-                onClick={() => setResignModal({ isOpen: false, employee: null, date: '' })} 
+              <button
+                onClick={() => setResignModal({ isOpen: false, employee: null, date: '' })}
                 className="p-1 hover:bg-slate-100 rounded-full transition-colors"
               >
                 <X className="h-5 w-5 text-slate-400" />
@@ -1059,7 +1058,7 @@ export default function EmployeeListPage() {
               </p>
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-500">Ngày nghỉ việc</label>
-                <Input 
+                <Input
                   type="date"
                   value={resignModal.date}
                   onChange={(e) => setResignModal(prev => ({ ...prev, date: e.target.value }))}
@@ -1067,26 +1066,26 @@ export default function EmployeeListPage() {
                 />
               </div>
               <div className="mt-8 flex gap-3 justify-end">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setResignModal({ isOpen: false, employee: null, date: '' })} 
+                <Button
+                  variant="outline"
+                  onClick={() => setResignModal({ isOpen: false, employee: null, date: '' })}
                   className="rounded-xl px-6"
                 >
                   Hủy bỏ
                 </Button>
-                <Button 
+                <Button
                   onClick={async () => {
                     try {
-                      await resignMutation.mutateAsync({ 
-                        id: resignModal.employee!.id, 
-                        date: resignModal.date || undefined 
+                      await resignMutation.mutateAsync({
+                        id: resignModal.employee!.id,
+                        date: resignModal.date || undefined
                       })
                       toast.success('Đã thiết lập nghỉ việc thành công')
                       setResignModal({ isOpen: false, employee: null, date: '' })
                     } catch (err) {
                       toast.error((err as Error).message)
                     }
-                  }} 
+                  }}
                   className="rounded-xl px-6 bg-red-600 hover:bg-red-700 text-white"
                 >
                   Xác nhận

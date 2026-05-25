@@ -66,7 +66,7 @@ export default function LoginPage() {
       setError((err as Error).message || 'Đăng nhập thất bại')
     } finally {
       setSubmitting(false)
-    }
+    } 
   }
 
   const handleInitiateForgot = async () => {
