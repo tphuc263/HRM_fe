@@ -374,8 +374,8 @@ export default function EmployeeListPage() {
   }
 
   const validateForm = () => {
-    if (!form.code.trim() || !form.name.trim() || !form.email.trim() || !form.joinDate) {
-      return 'Vui lòng nhập đầy đủ mã, họ tên, email và ngày vào làm'
+    if (!form.name.trim() || !form.email.trim() || !form.joinDate) {
+      return 'Vui lòng nhập đầy đủ họ tên, email và ngày vào làm'
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -804,7 +804,12 @@ export default function EmployeeListPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-muted-foreground">Mã nhân viên</label>
-                <Input value={form.code} onChange={(e) => setForm((prev) => ({ ...prev, code: e.target.value }))} />
+                <Input
+                  value={formMode === 'create' ? '' : form.code}
+                  disabled
+                  placeholder="Hệ thống tự động sinh"
+                  className="bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-75"
+                />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground">Họ và tên</label>
