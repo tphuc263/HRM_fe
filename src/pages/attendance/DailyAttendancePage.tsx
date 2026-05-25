@@ -135,6 +135,11 @@ export default function DailyAttendancePage() {
   const toast = useToast()
 
   const [date, setDate] = useState(toIsoDate(new Date()))
+  const [fromDate, setFromDate] = useState(() => {
+    const now = new Date()
+    return toIsoDate(new Date(now.getFullYear(), now.getMonth(), 1))
+  })
+  const [toDate, setToDate] = useState(() => toIsoDate(new Date()))
   const [search, setSearch] = useState('')
   const [rows, setRows] = useState<AttendanceRecordDto[]>([])
   const [loading, setLoading] = useState(false)
@@ -160,6 +165,32 @@ export default function DailyAttendancePage() {
     note: '',
   })
 
+  const setQuickRange = (rangeType: 'this_month' | 'last_month' | 'last_7_days' | 'last_30_days') => {
+    const today = new Date()
+    let from = new Date()
+    let to = new Date()
+
+    if (rangeType === 'this_month') {
+      from = new Date(today.getFullYear(), today.getMonth(), 1)
+      to = today
+    } else if (rangeType === 'last_month') {
+      from = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+      to = new Date(today.getFullYear(), today.getMonth(), 0)
+    } else if (rangeType === 'last_7_days') {
+      from = new Date()
+      from.setDate(today.getDate() - 7)
+      to = today
+    } else if (rangeType === 'last_30_days') {
+      from = new Date()
+      from.setDate(today.getDate() - 30)
+      to = today
+    }
+
+    setFromDate(toIsoDate(from))
+    setToDate(toIsoDate(to))
+    setCurrentPage(1)
+  }
+
   const loadData = useCallback(async () => {
     setLoading(true)
     setError('')
@@ -176,15 +207,11 @@ export default function DailyAttendancePage() {
         setRows(pageData.content)
         setTotalPages(Math.max(1, pageData.totalPages))
         setTotalItems(pageData.totalElements)
-      } else if (date === toIsoDate(new Date())) {
-        const today = await attendanceService.getToday()
-        setRows([today])
-        setTotalPages(1)
-        setTotalItems(1)
       } else {
         const pageData = await attendanceService.getMyRecords({
-          from: date,
-          to: date,
+          from: fromDate,
+          to: toDate,
+          status: search.trim() || undefined,
           page: currentPage - 1,
           size: PAGE_SIZE,
           sortBy: 'date',
@@ -202,7 +229,7 @@ export default function DailyAttendancePage() {
     } finally {
       setLoading(false)
     }
-  }, [currentPage, date, isAdmin, search])
+  }, [currentPage, date, fromDate, toDate, isAdmin, search])
 
   useEffect(() => {
     void loadData()
@@ -212,7 +239,7 @@ export default function DailyAttendancePage() {
     if (currentPage !== 1) {
       setCurrentPage(1)
     }
-  }, [date, search])
+  }, [date, fromDate, toDate, search])
 
   const handleCheckIn = async () => {
     setActionLoading(true)
@@ -274,7 +301,10 @@ export default function DailyAttendancePage() {
       ]),
     ]
 
-    downloadCsv(`attendance-daily-${date}-page-${currentPage}.csv`, csvRows)
+    const fileName = isAdmin
+      ? `attendance-daily-${date}-page-${currentPage}.csv`
+      : `attendance-history-${fromDate}-to-${toDate}-page-${currentPage}.csv`
+    downloadCsv(fileName, csvRows)
   }
 
   return (
@@ -282,7 +312,9 @@ export default function DailyAttendancePage() {
       <div className="bg-[#3d6b59] h-12 flex items-center justify-between px-6 shadow-md z-10">
         <div className="flex items-center">
           <Calendar className="text-white h-5 w-5 mr-2" />
-          <span className="text-white font-bold tracking-wide">CÔNG NGÀY</span>
+          <span className="text-white font-bold tracking-wide">
+            {isAdmin ? 'CÔNG NGÀY' : 'LỊCH SỬ CHẤM CÔNG'}
+          </span>
         </div>
         <Button variant="secondary" size="sm" onClick={handleExport} className="bg-white text-[#3d6b59] hover:bg-white/90">
           <FileDown className="h-4 w-4 mr-1" />
@@ -313,10 +345,12 @@ export default function DailyAttendancePage() {
         <div className="bg-white border rounded-md p-4 mb-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="text-sm text-muted-foreground mb-1 block">Nhân viên / trạng thái</label>
+              <label className="text-sm text-muted-foreground mb-1 block">
+                {isAdmin ? 'Nhân viên / trạng thái' : 'Trạng thái công'}
+              </label>
               <div className="relative">
                 <Input
-                  placeholder="Tìm theo tên, mã, trạng thái"
+                  placeholder={isAdmin ? "Tìm theo tên, mã, trạng thái" : "Tìm theo trạng thái..."}
                   className="pr-8"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -324,17 +358,75 @@ export default function DailyAttendancePage() {
                 <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               </div>
             </div>
-            <div>
-              <label className="text-sm text-muted-foreground mb-1 block">Theo ngày</label>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-            </div>
-            <div className="flex items-end">
-              <Button variant="outline" onClick={() => void loadData()}>
-                <RefreshCw className="h-4 w-4" />
+            {isAdmin ? (
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Theo ngày</label>
+                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              </div>
+            ) : (
+              <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm text-muted-foreground mb-1 block">Từ ngày</label>
+                  <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-sm text-muted-foreground mb-1 block">Đến ngày</label>
+                  <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+                </div>
+              </div>
+            )}
+            {isAdmin && (
+              <div className="flex items-end">
+                <Button variant="outline" onClick={() => void loadData()}>
+                  <RefreshCw className="h-4 w-4" />
+                  Tải lại
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {!isAdmin && (
+            <div className="mt-4 pt-4 border-t flex flex-wrap items-center justify-between gap-4">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setQuickRange('last_7_days')}
+                  className="rounded-full hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition-all text-xs"
+                >
+                  7 ngày qua
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setQuickRange('last_30_days')}
+                  className="rounded-full hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition-all text-xs"
+                >
+                  30 ngày qua
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setQuickRange('this_month')}
+                  className="rounded-full hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition-all text-xs"
+                >
+                  Tháng này
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setQuickRange('last_month')}
+                  className="rounded-full hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition-all text-xs"
+                >
+                  Tháng trước
+                </Button>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => void loadData()} className="h-8">
+                <RefreshCw className="h-3.5 w-3.5 mr-1" />
                 Tải lại
               </Button>
             </div>
-          </div>
+          )}
           {error && <p className="text-sm text-destructive mt-3">{error}</p>}
         </div>
 
@@ -363,7 +455,7 @@ export default function DailyAttendancePage() {
               ) : rows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={isAdmin ? 9 : 8} className="text-center py-8 text-muted-foreground">
-                    Không có dữ liệu công ngày
+                    {isAdmin ? 'Không có dữ liệu công ngày' : 'Không có dữ liệu chấm công trong khoảng thời gian này'}
                   </TableCell>
                 </TableRow>
               ) : (
