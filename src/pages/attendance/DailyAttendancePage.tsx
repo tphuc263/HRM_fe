@@ -131,8 +131,8 @@ function renderVerificationBadge(
 
 export default function DailyAttendancePage() {
   const { user } = useAuth()
-  const isAdmin = user?.role === 'ADMIN'
   const toast = useToast()
+  const isAdmin = user?.role === 'ADMIN'
 
   const [date, setDate] = useState(toIsoDate(new Date()))
   const [fromDate, setFromDate] = useState(() => {

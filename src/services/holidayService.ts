@@ -8,6 +8,9 @@ export const holidayService = {
   create(payload: HolidayUpsertPayload) {
     return apiClient.post<HolidayDto>('/holidays', payload)
   },
+  createBatch(payloads: HolidayUpsertPayload[]) {
+    return apiClient.post<HolidayDto[]>('/holidays/batch', payloads)
+  },
   update(id: number, payload: HolidayUpsertPayload) {
     return apiClient.put<HolidayDto>(`/holidays/${id}`, payload)
   },

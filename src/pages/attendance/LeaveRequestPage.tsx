@@ -51,8 +51,8 @@ function getCurrentYear() {
 
 export default function LeaveRequestPage() {
   const { user } = useAuth()
-  const isAdmin = user?.role === 'ADMIN'
   const toast = useToast()
+  const isAdmin = user?.role === 'ADMIN'
 
   const [rejectPrompt, setRejectPrompt] = useState<{
     isOpen: boolean

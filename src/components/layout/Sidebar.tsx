@@ -168,7 +168,7 @@ export default function Sidebar() {
         <div className="flex items-center justify-between p-2 bg-muted/40 dark:bg-black rounded-xl border border-slate-200 dark:border-white">
           <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 select-none">
             {theme === 'light' ? <Sun className="h-3.5 w-3.5 text-amber-500" /> : <Moon className="h-3.5 w-3.5 text-blue-400" />}
-            {theme === 'light' ? 'Chế độ sáng' : 'Chế độ tối'}
+            {theme === 'light' ? 'Light Mode' : 'Dark Mode'}
           </span>
           <button
             onClick={toggleTheme}
@@ -186,7 +186,7 @@ export default function Sidebar() {
 
         <div className="px-1 text-xs text-muted-foreground">
           {user?.employeeName || user?.username}
-          <span className="block uppercase tracking-wide">{user?.role}</span>
+          {/* <span className="block uppercase tracking-wide">{user?.role}</span> */}
         </div>
         <button
           onClick={handleLogout}

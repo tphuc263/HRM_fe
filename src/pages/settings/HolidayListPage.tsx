@@ -50,6 +50,7 @@ export default function HolidayListPage() {
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
   const [editingId, setEditingId] = useState<number | null>(null)
   const [form, setForm] = useState<HolidayUpsertPayload>(initialForm)
+  const [endDate, setEndDate] = useState('')
   const [formError, setFormError] = useState('')
   const [formLoading, setFormLoading] = useState(false)
 
@@ -83,6 +84,7 @@ export default function HolidayListPage() {
     setFormMode('create')
     setEditingId(null)
     setForm({ ...initialForm, date: new Date().toISOString().slice(0, 10) })
+    setEndDate('')
     setFormError('')
     setShowFormModal(true)
   }
@@ -95,6 +97,7 @@ export default function HolidayListPage() {
       date: holiday.date,
       isPaid: holiday.isPaid,
     })
+    setEndDate('')
     setFormError('')
     setShowFormModal(true)
   }
@@ -124,6 +127,9 @@ export default function HolidayListPage() {
     if (!form.name.trim() || !form.date) {
       return 'Vui lòng nhập tên và ngày lễ'
     }
+    if (formMode === 'create' && endDate && endDate < form.date) {
+      return 'Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu'
+    }
     return ''
   }
 
@@ -139,7 +145,22 @@ export default function HolidayListPage() {
     setFormLoading(true)
     try {
       if (formMode === 'create') {
-        await holidayService.create(form)
+        if (endDate && endDate > form.date) {
+          const payloads: HolidayUpsertPayload[] = []
+          let currentDate = new Date(form.date)
+          const end = new Date(endDate)
+          while (currentDate <= end) {
+            payloads.push({
+              name: form.name,
+              date: currentDate.toISOString().slice(0, 10),
+              isPaid: form.isPaid
+            })
+            currentDate.setDate(currentDate.getDate() + 1)
+          }
+          await holidayService.createBatch(payloads)
+        } else {
+          await holidayService.create(form)
+        }
       } else if (editingId) {
         await holidayService.update(editingId, form)
       }
@@ -231,7 +252,9 @@ export default function HolidayListPage() {
               />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground">Ngày lễ *</label>
+              <label className="text-xs text-muted-foreground">
+                {formMode === 'create' ? 'Ngày lễ (Từ ngày) *' : 'Ngày lễ *'}
+              </label>
               <Input
                 type="date"
                 required
@@ -239,6 +262,17 @@ export default function HolidayListPage() {
                 onChange={(e) => setForm({ ...form, date: e.target.value })}
               />
             </div>
+            {formMode === 'create' && (
+              <div>
+                <label className="text-xs text-muted-foreground">Đến ngày (Tùy chọn, nếu nghỉ nhiều ngày)</label>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  min={form.date}
+                />
+              </div>
+            )}
             <div className="flex items-center space-x-2 pt-2">
               <Checkbox
                 id="isPaid"
