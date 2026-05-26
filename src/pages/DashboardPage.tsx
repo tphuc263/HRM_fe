@@ -28,6 +28,7 @@ interface MetricItem {
   value: string
   subtitle: string
   icon: React.ComponentType<{ className?: string }>
+  to?: string
 }
 
 interface ActivityItem {
@@ -175,6 +176,7 @@ export default function DashboardPage() {
           value: `${employees.length}`,
           subtitle: `${activeEmployees} đang làm việc`,
           icon: Users,
+          to: '/admin/employees',
         },
         {
           id: 'pending-leaves',
@@ -182,6 +184,7 @@ export default function DashboardPage() {
           value: `${pendingLeaves}`,
           subtitle: 'Cần xử lý trong hôm nay',
           icon: FileText,
+          to: '/admin/attendance/leave-request',
         },
         {
           id: 'checked-in',
@@ -189,6 +192,7 @@ export default function DashboardPage() {
           value: `${checkedInEmployees}`,
           subtitle: `Vắng/đã nghỉ: ${Math.max(0, employees.length - checkedInEmployees - resignedEmployees)}`,
           icon: UserCheck,
+          to: '/admin/attendance/daily',
         },
       ]
     }
@@ -204,6 +208,7 @@ export default function DashboardPage() {
         value: todayStatus,
         subtitle: todayMyAttendance?.checkIn ? `Check-in ${todayMyAttendance.checkIn.slice(0, 5)}` : 'Bạn chưa check-in',
         icon: AlarmClock,
+        to: `/employees/${user?.userId}/attendance/daily`,
       },
       {
         id: 'my-pending-requests',
@@ -211,6 +216,7 @@ export default function DashboardPage() {
         value: `${pending}`,
         subtitle: 'Các yêu cầu nghỉ phép đang chờ xử lý',
         icon: CalendarClock,
+        to: `/employees/${user?.userId}/attendance/leave-request`,
       },
       {
         id: 'my-approved-requests',
@@ -218,6 +224,7 @@ export default function DashboardPage() {
         value: `${approved}`,
         subtitle: 'Tổng số yêu cầu nghỉ phép đã được duyệt',
         icon: FileText,
+        to: `/employees/${user?.userId}/attendance/leave-request`,
       },
     ]
   }, [employees, isAdmin, leaveRequests, pendingLeaveTotal, todayAttendanceList, todayMyAttendance])
@@ -359,250 +366,241 @@ export default function DashboardPage() {
       <div className="flex-1 overflow-auto">
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
 
-        {error && (
-          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
-
-        <section className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-          {metrics.map(({ id, icon: Icon, subtitle, title, value }) => (
-            <article key={id} className="rounded-xl border bg-white p-5 shadow-sm">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm text-muted-foreground">{title}</p>
-                  <p className="mt-2 text-2xl font-semibold text-foreground">
-                    {isLoading ? '...' : value}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
-                </div>
-                <div className="rounded-lg bg-primary/10 p-2.5 text-primary">
-                  <Icon className="h-5 w-5" />
-                </div>
-              </div>
-            </article>
-          ))}
-        </section>
-
-        {isAdmin && (
-          <section className="mt-6 rounded-xl border bg-white p-5 shadow-sm">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-foreground">Danh sách nhân viên mới</h2>
-              <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-                <div className="relative min-w-[220px] flex-1 sm:flex-none">
-                  <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <input
-                    type="text"
-                    value={employeeSearch}
-                    onChange={(event) => setEmployeeSearch(event.target.value)}
-                    placeholder="Tìm kiếm nhân viên..."
-                    className="h-10 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm outline-none focus:border-primary"
-                  />
-                </div>
-                <div className="flex items-center gap-2 rounded-md border border-input bg-background px-3 h-10 text-sm text-muted-foreground">
-                  <Filter className="h-4 w-4" />
-                  <select
-                    value={employeeStatusFilter}
-                    onChange={(event) => setEmployeeStatusFilter(event.target.value as 'ALL' | 'ACTIVE' | 'RESIGNED')}
-                    className="bg-transparent outline-none"
-                  >
-                    <option value="ALL">Tất cả trạng thái</option>
-                    <option value="ACTIVE">Đang làm việc</option>
-                    <option value="RESIGNED">Nghỉ việc</option>
-                  </select>
-                </div>
-                <div className="flex items-center gap-2 rounded-md border border-input bg-background px-3 h-10 text-sm text-muted-foreground">
-                  <Filter className="h-4 w-4" />
-                  <select
-                    value={employeeDepartmentFilter === 'ALL' ? 'ALL' : String(employeeDepartmentFilter)}
-                    onChange={(event) => {
-                      const value = event.target.value
-                      setEmployeeDepartmentFilter(value === 'ALL' ? 'ALL' : Number(value))
-                    }}
-                    className="bg-transparent outline-none"
-                  >
-                    <option value="ALL">Tất cả phòng ban</option>
-                    {departments.map((department) => (
-                      <option key={department.id} value={department.id}>{department.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex items-center gap-2 rounded-md border border-input bg-background px-3 h-10 text-sm text-muted-foreground">
-                  <Filter className="h-4 w-4" />
-                  <select
-                    value={employeeSortField}
-                    onChange={(event) => setEmployeeSortField(event.target.value as 'JOIN_DATE' | 'NAME' | 'SALARY')}
-                    className="bg-transparent outline-none"
-                  >
-                    <option value="JOIN_DATE">Sắp xếp: Ngày vào</option>
-                    <option value="NAME">Sắp xếp: Tên</option>
-                    <option value="SALARY">Sắp xếp: Lương cơ bản</option>
-                  </select>
-                </div>
-                <div className="flex items-center gap-2 rounded-md border border-input bg-background px-3 h-10 text-sm text-muted-foreground">
-                  <Filter className="h-4 w-4" />
-                  <select
-                    value={employeeSortDirection}
-                    onChange={(event) => setEmployeeSortDirection(event.target.value as 'asc' | 'desc')}
-                    className="bg-transparent outline-none"
-                  >
-                    <option value="desc">Giảm dần</option>
-                    <option value="asc">Tăng dần</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div className="overflow-hidden rounded-lg border border-slate-200">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50">
-                  <tr>
-                    <th className="px-3 py-2 text-left font-medium text-slate-600">Mã NV</th>
-                    <th className="px-3 py-2 text-left font-medium text-slate-600">Họ tên</th>
-                    <th className="px-3 py-2 text-left font-medium text-slate-600">Phòng ban</th>
-                    <th className="px-3 py-2 text-left font-medium text-slate-600">Ngày vào</th>
-                    <th className="px-3 py-2 text-left font-medium text-slate-600">Trạng thái</th>
-                    <th className="px-3 py-2 text-left font-medium text-slate-600">Lương</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {isLoading ? (
-                    <tr>
-                      <td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">Đang tải dữ liệu...</td>
-                    </tr>
-                  ) : newEmployees.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">Không có nhân viên phù hợp.</td>
-                    </tr>
-                  ) : (
-                    newEmployees.map((employee) => (
-                      <tr key={employee.id} className="border-t border-slate-200">
-                        <td className="px-3 py-2 font-medium text-blue-600">{employee.code}</td>
-                        <td className="px-3 py-2 text-foreground">{employee.name}</td>
-                        <td className="px-3 py-2 text-muted-foreground">{employee.departmentName || '-'}</td>
-                        <td className="px-3 py-2 text-muted-foreground">{employee.joinDate ? formatDate(employee.joinDate) : '-'}</td>
-                        <td className="px-3 py-2">
-                          <span className={`rounded-full px-2 py-1 text-xs ${employee.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                            {employee.status === 'ACTIVE' ? 'Đang làm việc' : 'Nghỉ việc'}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2 text-foreground">{formatCurrency(employee.currentSalary ?? employee.latestNetSalary)}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        <section className="mt-6 rounded-xl border bg-white p-5 shadow-sm">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-foreground">
-              {isAdmin ? 'Yêu cầu nghỉ phép gần đây' : 'Yêu cầu nghỉ phép của bạn'}
-            </h2>
-            <Link to={isAdmin ? '/admin/attendance/leave-request' : '/attendance/leave-request'} className="text-sm text-primary hover:underline">
-              Xem tất cả
-            </Link>
-          </div>
-
-          {isLoading ? (
-            <p className="text-sm text-muted-foreground">Đang tải dữ liệu...</p>
-          ) : recentRequests.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Chưa có yêu cầu nghỉ phép nào.</p>
-          ) : (
-            <div className="space-y-3">
-              {recentRequests.map((request) => (
-                <div
-                  key={request.id}
-                  className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50/60 p-3 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div>
-                    <p className="font-medium text-foreground">
-                      {request.employeeName} • {request.leaveTypeName}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatDate(request.startDate)} - {formatDate(request.endDate)} • {request.days} ngày
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-xs">
-                      {statusLabel(request.status)}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">{formatDate(request.createdAt)}</span>
-                  </div>
-                </div>
-              ))}
+          {error && (
+            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
             </div>
           )}
-        </section>
 
-        {isAdmin ? (
-          <section className="mt-6 rounded-xl border bg-white p-5 shadow-sm">
-            <h2 className="mb-4 text-lg font-semibold text-foreground">Biến động gần đây</h2>
-            {isLoading ? (
-              <p className="text-sm text-muted-foreground">Đang tải dữ liệu...</p>
-            ) : recentActivities.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Chưa có biến động gần đây.</p>
-            ) : (
+          <section className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+            {metrics.map(({ id, icon: Icon, subtitle, title, value, to }) => {
+              const CardContent = (
+                <article className={`rounded-xl border bg-white p-5 shadow-sm h-full ${to ? 'transition-colors hover:border-primary/40 hover:bg-primary/5' : ''}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm text-muted-foreground">{title}</p>
+                      <p className="mt-2 text-2xl font-semibold text-foreground">
+                        {isLoading ? '...' : value}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
+                    </div>
+                    <div className="rounded-lg bg-primary/10 p-2.5 text-primary">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                  </div>
+                </article>
+              )
+              return to ? (
+                <Link key={id} to={to} className="block outline-none h-full">
+                  {CardContent}
+                </Link>
+              ) : (
+                <div key={id} className="h-full">
+                  {CardContent}
+                </div>
+              )
+            })}
+          </section>
+
+          {isAdmin && (
+            <section className="mt-6 rounded-xl border bg-white p-5 shadow-sm">
+              <div className="mb-4 flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-foreground">Danh sách nhân viên mới</h2>
+                  <Link to="/admin/employees" className="text-sm text-primary hover:underline">
+                    Xem tất cả
+                  </Link>
+                </div>
+                <div className="flex w-full items-center gap-2 overflow-x-auto pb-1">
+                  <div className="relative flex-shrink-0 w-[180px]">
+                    <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      type="text"
+                      value={employeeSearch}
+                      onChange={(event) => setEmployeeSearch(event.target.value)}
+                      placeholder="Tìm nhân viên..."
+                      className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-2 text-sm outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div className="flex flex-shrink-0 items-center gap-1.5 rounded-md border border-input bg-background px-2 h-9 text-sm text-muted-foreground">
+                    <select
+                      value={employeeStatusFilter}
+                      onChange={(event) => setEmployeeStatusFilter(event.target.value as 'ALL' | 'ACTIVE' | 'RESIGNED')}
+                      className="bg-transparent outline-none cursor-pointer"
+                    >
+                      <option value="ALL">Tất cả trạng thái</option>
+                      <option value="ACTIVE">Đang làm việc</option>
+                      <option value="RESIGNED">Nghỉ việc</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-shrink-0 items-center gap-1.5 rounded-md border border-input bg-background px-2 h-9 text-sm text-muted-foreground">
+                    <select
+                      value={employeeDepartmentFilter === 'ALL' ? 'ALL' : String(employeeDepartmentFilter)}
+                      onChange={(event) => {
+                        const value = event.target.value
+                        setEmployeeDepartmentFilter(value === 'ALL' ? 'ALL' : Number(value))
+                      }}
+                      className="bg-transparent outline-none max-w-[120px] truncate cursor-pointer"
+                    >
+                      <option value="ALL">Tất cả phòng ban</option>
+                      {departments.map((department) => (
+                        <option key={department.id} value={department.id}>{department.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-shrink-0 items-center gap-1.5 rounded-md border border-input bg-background px-2 h-9 text-sm text-muted-foreground">
+                    <select
+                      value={employeeSortField}
+                      onChange={(event) => setEmployeeSortField(event.target.value as 'JOIN_DATE' | 'NAME' | 'SALARY')}
+                      className="bg-transparent outline-none cursor-pointer"
+                    >
+                      <option value="JOIN_DATE">Ngày vào</option>
+                      <option value="NAME">Tên NV</option>
+                      <option value="SALARY">Lương</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-shrink-0 items-center gap-1.5 rounded-md border border-input bg-background px-2 h-9 text-sm text-muted-foreground">
+                    <select
+                      value={employeeSortDirection}
+                      onChange={(event) => setEmployeeSortDirection(event.target.value as 'asc' | 'desc')}
+                      className="bg-transparent outline-none cursor-pointer"
+                    >
+                      <option value="desc">Giảm dần</option>
+                      <option value="asc">Tăng dần</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
               <div className="overflow-hidden rounded-lg border border-slate-200">
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50">
                     <tr>
-                      <th className="px-3 py-2 text-left font-medium text-slate-600">Nhân viên</th>
+                      <th className="px-3 py-2 text-left font-medium text-slate-600">Mã NV</th>
+                      <th className="px-3 py-2 text-left font-medium text-slate-600">Họ tên</th>
                       <th className="px-3 py-2 text-left font-medium text-slate-600">Phòng ban</th>
-                      <th className="px-3 py-2 text-left font-medium text-slate-600">Hành động</th>
-                      <th className="px-3 py-2 text-left font-medium text-slate-600">Ngày</th>
-                      <th className="px-3 py-2 text-left font-medium text-slate-600">Vị trí</th>
+                      <th className="px-3 py-2 text-left font-medium text-slate-600">Ngày vào</th>
                       <th className="px-3 py-2 text-left font-medium text-slate-600">Trạng thái</th>
+                      <th className="px-3 py-2 text-left font-medium text-slate-600">Lương</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {recentActivities.map((item) => (
-                      <tr key={item.id} className="border-t border-slate-200">
-                        <td className="px-3 py-2 font-medium text-foreground">{item.employeeName}</td>
-                        <td className="px-3 py-2 text-muted-foreground">{item.department}</td>
-                        <td className="px-3 py-2">
-                          <span className={`rounded-full px-2 py-1 text-xs ${item.actionClassName}`}>
-                            {item.action}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2 text-muted-foreground">{formatDate(item.date)}</td>
-                        <td className="px-3 py-2 text-muted-foreground">{item.position}</td>
-                        <td className="px-3 py-2">
-                          <span className="rounded-full bg-green-100 px-2 py-1 text-xs text-green-700">{item.status}</span>
-                        </td>
+                    {isLoading ? (
+                      <tr>
+                        <td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">Đang tải dữ liệu...</td>
                       </tr>
-                    ))}
+                    ) : newEmployees.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">Không có nhân viên phù hợp.</td>
+                      </tr>
+                    ) : (
+                      newEmployees.map((employee) => (
+                        <tr key={employee.id} className="border-t border-slate-200">
+                          <td className="px-3 py-2 font-medium text-blue-600">{employee.code}</td>
+                          <td className="px-3 py-2 text-foreground">{employee.name}</td>
+                          <td className="px-3 py-2 text-muted-foreground">{employee.departmentName || '-'}</td>
+                          <td className="px-3 py-2 text-muted-foreground">{employee.joinDate ? formatDate(employee.joinDate) : '-'}</td>
+                          <td className="px-3 py-2">
+                            <span className={`rounded-full px-2 py-1 text-xs ${employee.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                              {employee.status === 'ACTIVE' ? 'Đang làm việc' : 'Nghỉ việc'}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 text-foreground">{formatCurrency(employee.currentSalary ?? employee.latestNetSalary)}</td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
-            )}
-          </section>
-        ) : (
+            </section>
+          )}
+
           <section className="mt-6 rounded-xl border bg-white p-5 shadow-sm">
-            <h2 className="mb-4 text-lg font-semibold text-foreground">Truy cập nhanh</h2>
-            <div className="space-y-3">
-              {quickLinks.map(({ hint, icon: Icon, label, to }) => (
-                <Link
-                  key={to}
-                  to={to}
-                  className="group flex items-center justify-between gap-3 rounded-lg border border-slate-200 p-3 transition-colors hover:border-primary/40 hover:bg-primary/5"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="rounded-md bg-primary/10 p-2 text-primary">
-                      <Icon className="h-4 w-4" />
-                    </div>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-foreground">
+                {isAdmin ? 'Yêu cầu nghỉ phép gần đây' : 'Yêu cầu nghỉ phép của bạn'}
+              </h2>
+              <Link to={isAdmin ? '/admin/attendance/leave-request' : '/attendance/leave-request'} className="text-sm text-primary hover:underline">
+                Xem tất cả
+              </Link>
+            </div>
+
+            {isLoading ? (
+              <p className="text-sm text-muted-foreground">Đang tải dữ liệu...</p>
+            ) : recentRequests.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Chưa có yêu cầu nghỉ phép nào.</p>
+            ) : (
+              <div className="space-y-3">
+                {recentRequests.map((request) => (
+                  <div
+                    key={request.id}
+                    className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50/60 p-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
                     <div>
-                      <p className="text-sm font-medium text-foreground">{label}</p>
-                      <p className="text-xs text-muted-foreground">{hint}</p>
+                      <p className="font-medium text-foreground">
+                        {request.employeeName} • {request.leaveTypeName}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDate(request.startDate)} - {formatDate(request.endDate)} • {request.days} ngày
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-xs">
+                        {statusLabel(request.status)}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">{formatDate(request.createdAt)}</span>
                     </div>
                   </div>
-                </Link>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </section>
-        )}
+
+          {isAdmin && (
+            <section className="mt-6 rounded-xl border bg-white p-5 shadow-sm">
+              <h2 className="mb-4 text-lg font-semibold text-foreground">Biến động gần đây</h2>
+              {isLoading ? (
+                <p className="text-sm text-muted-foreground">Đang tải dữ liệu...</p>
+              ) : recentActivities.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Chưa có biến động gần đây.</p>
+              ) : (
+                <div className="overflow-x-auto rounded-lg border border-slate-200">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th className="px-3 py-2 text-left font-medium text-slate-600">Nhân viên</th>
+                        <th className="px-3 py-2 text-left font-medium text-slate-600">Phòng ban</th>
+                        <th className="px-3 py-2 text-left font-medium text-slate-600">Hành động</th>
+                        <th className="px-3 py-2 text-left font-medium text-slate-600">Ngày</th>
+                        <th className="px-3 py-2 text-left font-medium text-slate-600">Vị trí</th>
+                        <th className="px-3 py-2 text-left font-medium text-slate-600">Trạng thái</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recentActivities.map((item) => (
+                        <tr key={item.id} className="border-t border-slate-200">
+                          <td className="px-3 py-2 font-medium text-foreground whitespace-nowrap">{item.employeeName}</td>
+                          <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{item.department}</td>
+                          <td className="px-3 py-2 whitespace-nowrap">
+                            <span className={`rounded-full px-2 py-1 text-xs ${item.actionClassName}`}>
+                              {item.action}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{formatDate(item.date)}</td>
+                          <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{item.position}</td>
+                          <td className="px-3 py-2 whitespace-nowrap">
+                            <span className="rounded-full bg-green-100 px-2 py-1 text-xs text-green-700">{item.status}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          )}
+
+
         </div>
       </div>
     </div>
