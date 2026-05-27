@@ -844,10 +844,7 @@ export default function EmployeeListPage() {
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="text-xs text-muted-foreground">Avatar URL</label>
-                <Input value={form.avatar || ''} onChange={(e) => setForm((prev) => ({ ...prev, avatar: e.target.value }))} />
-              </div>
+
             </div>
 
             <div>

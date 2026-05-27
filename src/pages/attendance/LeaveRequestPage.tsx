@@ -90,13 +90,12 @@ export default function LeaveRequestPage() {
   const [adminBalances, setAdminBalances] = useState<LeaveBalanceDto[]>([])
   const [adminBalanceLoading, setAdminBalanceLoading] = useState(false)
 
-  const [form, setForm] = useState<LeaveRequestCreatePayload>({
+  const [form, setForm] = useState<Omit<LeaveRequestCreatePayload, 'attachmentUrl'>>({
     leaveTypeId: 0,
     startDate: '',
     endDate: '',
     days: 1,
     reason: '',
-    attachmentUrl: '',
   })
 
   const loadTypes = useCallback(async () => {
@@ -219,9 +218,8 @@ export default function LeaveRequestPage() {
       await leaveService.submitRequest({
         ...form,
         reason: form.reason.trim(),
-        attachmentUrl: form.attachmentUrl?.trim() || undefined,
       })
-      setForm((prev) => ({ ...prev, reason: '', attachmentUrl: '', days: 1 }))
+      setForm((prev) => ({ ...prev, reason: '', days: 1 }))
       setShowCreateForm(false)
       await Promise.all([loadRequests(), loadMyBalances()])
     } catch (err) {
@@ -301,9 +299,9 @@ export default function LeaveRequestPage() {
               onChange={(e) => setYear(Number(e.target.value))}
             />
           </div>
-          <Button variant="secondary" size="sm" onClick={() => setShowCreateForm((prev) => !prev)} className="bg-white text-[#3d6b59] hover:bg-white/90">
+          <Button variant="secondary" size="sm" onClick={() => setShowCreateForm(true)} className="bg-white text-[#3d6b59] hover:bg-white/90 font-medium">
             <Plus className="h-4 w-4 mr-1" />
-            {showCreateForm ? 'Ẩn tạo đơn mới' : 'Tạo đơn nghỉ mới'}
+            Tạo đơn nghỉ mới
           </Button>
         </div>
       </div>
@@ -323,11 +321,13 @@ export default function LeaveRequestPage() {
             ))}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="relative">
-              <Input placeholder="Tìm tên/mã/lý do" className="pr-8" value={search} onChange={(e) => { setSearch(e.target.value); setCurrentPage(1) }} />
-              <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            </div>
+          <div className={`grid grid-cols-1 ${isAdmin ? 'md:grid-cols-2' : 'md:grid-cols-1'} gap-3`}>
+            {isAdmin && (
+              <div className="relative">
+                <Input placeholder="Tìm tên/mã/lý do" className="pr-8" value={search} onChange={(e) => { setSearch(e.target.value); setCurrentPage(1) }} />
+                <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              </div>
+            )}
             <select
               className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
               value={leaveTypeFilter}
@@ -347,8 +347,8 @@ export default function LeaveRequestPage() {
               <TableHeader>
                 <TableRow className="bg-muted/50">
                   <TableHead className="w-10" />
-                  <TableHead>Ma NV</TableHead>
-                  <TableHead>Họ tên</TableHead>
+                  {isAdmin && <TableHead>Ma NV</TableHead>}
+                  {isAdmin && <TableHead>Họ tên</TableHead>}
                   <TableHead>Loại nghỉ</TableHead>
                   <TableHead>Từ ngày</TableHead>
                   <TableHead>Đến ngày</TableHead>
@@ -359,15 +359,15 @@ export default function LeaveRequestPage() {
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Đang tải dữ liệu...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={isAdmin ? 9 : 7} className="text-center py-8 text-muted-foreground">Đang tải dữ liệu...</TableCell></TableRow>
                 ) : requests.length === 0 ? (
-                  <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Không có dữ liệu</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={isAdmin ? 9 : 7} className="text-center py-8 text-muted-foreground">Không có dữ liệu</TableCell></TableRow>
                 ) : requests.map((row) => (
                   <Fragment key={row.id}>
                     <TableRow className="cursor-pointer" onClick={() => setExpanded((prev) => (prev === row.id ? null : row.id))}>
                       <TableCell>{expanded === row.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</TableCell>
-                      <TableCell>{row.employeeCode}</TableCell>
-                      <TableCell>{row.employeeName}</TableCell>
+                      {isAdmin && <TableCell>{row.employeeCode}</TableCell>}
+                      {isAdmin && <TableCell>{row.employeeName}</TableCell>}
                       <TableCell>{row.leaveTypeName}</TableCell>
                       <TableCell>{formatDate(row.startDate)}</TableCell>
                       <TableCell>{formatDate(row.endDate)}</TableCell>
@@ -389,7 +389,7 @@ export default function LeaveRequestPage() {
                     </TableRow>
                     {expanded === row.id && (
                       <TableRow>
-                        <TableCell colSpan={9} className="bg-muted/20">
+                        <TableCell colSpan={isAdmin ? 9 : 7} className="bg-muted/20">
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
                             <div><span className="text-muted-foreground">Lý do:</span> {row.reason}</div>
                             <div><span className="text-muted-foreground">Người duyệt:</span> {row.approvedByName || '-'}</div>
@@ -427,46 +427,60 @@ export default function LeaveRequestPage() {
         </div>
 
         {showCreateForm && (
-          <form className="bg-white border rounded-md p-4 space-y-4" onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-              <div>
-                <label className="text-xs text-muted-foreground">Loại nghỉ</label>
-                <select
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                  value={form.leaveTypeId}
-                  onChange={(e) => setForm((prev) => ({ ...prev, leaveTypeId: Number(e.target.value) }))}
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform animate-in zoom-in-95 duration-200 text-sm">
+              <div className="flex items-center justify-between px-6 py-4 border-b">
+                <h3 className="text-lg font-bold text-slate-800">Tạo đơn xin nghỉ mới</h3>
+                <button 
+                  onClick={() => setShowCreateForm(false)} 
+                  className="p-1 hover:bg-slate-100 rounded-full transition-colors"
                 >
-                  {leaveTypes.map((t) => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </select>
+                  <X className="h-5 w-5 text-slate-400" />
+                </button>
               </div>
-              <div>
-                <label className="text-xs text-muted-foreground">Từ ngày</label>
-                <Input type="date" value={form.startDate} onChange={(e) => setForm((prev) => ({ ...prev, startDate: e.target.value }))} />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground">Đến ngày</label>
-                <Input type="date" value={form.endDate} onChange={(e) => setForm((prev) => ({ ...prev, endDate: e.target.value }))} />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground">Số ngày</label>
-                <Input type="number" min="1" step="1" value={Math.round(form.days)} onChange={(e) => setForm((prev) => ({ ...prev, days: Number(e.target.value) }))} />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground">Attachment URL</label>
-                <Input value={form.attachmentUrl || ''} onChange={(e) => setForm((prev) => ({ ...prev, attachmentUrl: e.target.value }))} />
-              </div>
+              <form className="p-6 space-y-4" onSubmit={handleSubmit}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="col-span-1 sm:col-span-2">
+                    <label className="text-xs font-bold text-slate-500 mb-1 block">Loại nghỉ</label>
+                    <select
+                      className="flex h-11 w-full rounded-xl border border-slate-200 bg-transparent px-3 py-1 text-sm shadow-sm focus:ring-[#3d6b59] focus:border-[#3d6b59] transition-all"
+                      value={form.leaveTypeId}
+                      onChange={(e) => setForm((prev) => ({ ...prev, leaveTypeId: Number(e.target.value) }))}
+                    >
+                      {leaveTypes.map((t) => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 mb-1 block">Từ ngày</label>
+                    <Input className="rounded-xl border-slate-200 h-11 focus:ring-[#3d6b59] focus:border-[#3d6b59] transition-all" type="date" value={form.startDate} onChange={(e) => setForm((prev) => ({ ...prev, startDate: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 mb-1 block">Đến ngày</label>
+                    <Input className="rounded-xl border-slate-200 h-11 focus:ring-[#3d6b59] focus:border-[#3d6b59] transition-all" type="date" value={form.endDate} onChange={(e) => setForm((prev) => ({ ...prev, endDate: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 mb-1 block">Số ngày</label>
+                    <Input className="rounded-xl border-slate-200 h-11 focus:ring-[#3d6b59] focus:border-[#3d6b59] transition-all" type="number" min="0.5" step="0.5" value={form.days} onChange={(e) => setForm((prev) => ({ ...prev, days: Number(e.target.value) }))} />
+                  </div>
+                  <div className="col-span-1 sm:col-span-2">
+                    <label className="text-xs font-bold text-slate-500 mb-1 block">Lý do</label>
+                    <Input className="rounded-xl border-slate-200 h-11 focus:ring-[#3d6b59] focus:border-[#3d6b59] transition-all" placeholder="Nhập lý do xin nghỉ..." value={form.reason} onChange={(e) => setForm((prev) => ({ ...prev, reason: e.target.value }))} />
+                  </div>
+                </div>
+                <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
+                  <Button type="button" variant="outline" className="rounded-xl px-6 h-11" onClick={() => setShowCreateForm(false)}>
+                    Hủy
+                  </Button>
+                  <Button type="submit" disabled={submitLoading} className="rounded-xl px-6 h-11 bg-[#3d6b59] hover:bg-[#3d6b59]/90 text-white shadow-md">
+                    {submitLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+                    Gửi đơn
+                  </Button>
+                </div>
+              </form>
             </div>
-            <div>
-              <label className="text-xs text-muted-foreground">Lý do</label>
-              <Input value={form.reason} onChange={(e) => setForm((prev) => ({ ...prev, reason: e.target.value }))} />
-            </div>
-            <Button type="submit" disabled={submitLoading}>
-              {submitLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-              Gửi đơn
-            </Button>
-          </form>
+          </div>
         )}
 
         {!isAdmin && (

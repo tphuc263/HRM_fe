@@ -228,7 +228,28 @@ export default function OvertimeRegistrationPage() {
       <div className="flex-1 overflow-auto p-4 md:p-8">
         <div className="max-w-7xl mx-auto space-y-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div></div>
+            <div className="flex bg-white p-1.5 rounded-2xl shadow-sm border w-fit">
+              <button
+                onClick={() => setActiveTab('REQUESTS')}
+                className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                  activeTab === 'REQUESTS' 
+                    ? 'bg-[#3d6b59] text-white shadow-md' 
+                    : 'text-slate-500 hover:bg-slate-100'
+                }`}
+              >
+                Đơn đăng ký
+              </button>
+              <button
+                onClick={() => setActiveTab('RECORDS')}
+                className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                  activeTab === 'RECORDS' 
+                    ? 'bg-[#3d6b59] text-white shadow-md' 
+                    : 'text-slate-500 hover:bg-slate-100'
+                }`}
+              >
+                Bảng chấm công OT
+              </button>
+            </div>
             {!isAdmin && (
               <Button 
                 onClick={() => setIsModalOpen(true)}
@@ -238,29 +259,6 @@ export default function OvertimeRegistrationPage() {
                 Đăng ký tăng ca mới
               </Button>
             )}
-          </div>
-
-          <div className="flex bg-white p-1.5 rounded-2xl shadow-sm border w-fit">
-            <button
-              onClick={() => setActiveTab('REQUESTS')}
-              className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                activeTab === 'REQUESTS' 
-                  ? 'bg-[#3d6b59] text-white shadow-md' 
-                  : 'text-slate-500 hover:bg-slate-100'
-              }`}
-            >
-              Đơn đăng ký
-            </button>
-            <button
-              onClick={() => setActiveTab('RECORDS')}
-              className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                activeTab === 'RECORDS' 
-                  ? 'bg-[#3d6b59] text-white shadow-md' 
-                  : 'text-slate-500 hover:bg-slate-100'
-              }`}
-            >
-              Bảng chấm công OT
-            </button>
           </div>
 
           <div className="bg-white rounded-3xl shadow-xl border border-slate-200/60 overflow-hidden">

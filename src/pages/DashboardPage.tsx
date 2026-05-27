@@ -2,13 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   AlarmClock,
   CalendarClock,
-  Clock3,
-  Filter,
-  FileText,
   Search,
   UserCheck,
   Users,
-  Wallet,
+  FileText,
   LayoutDashboard,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -234,25 +231,6 @@ export default function DashboardPage() {
       .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
       .slice(0, 5)
   }, [leaveRequests])
-
-  const quickLinks = useMemo(() => {
-    if (isAdmin) {
-      return [
-        { to: '/admin/employees', label: 'Danh sách nhân viên', hint: 'Quản lý hồ sơ và trạng thái nhân sự', icon: Users },
-        { to: '/admin/attendance/daily', label: 'Công ngày', hint: 'Theo dõi chấm công theo ngày', icon: CalendarClock },
-        { to: '/admin/attendance/absence', label: 'Quản lý vắng', hint: 'Xử lý nhân sự vắng mặt', icon: FileText },
-        { to: '/admin/payroll/manage', label: 'Quản lý lương', hint: 'Duyệt và điều chỉnh bảng lương', icon: Wallet },
-      ]
-    }
-
-    const base = `/employees/${user?.userId}`
-    return [
-      { to: `${base}/attendance/daily`, label: 'Công ngày', hint: 'Kiểm tra giờ vào/ra hôm nay', icon: Clock3 },
-      { to: `${base}/attendance/overtime`, label: 'Đăng ký tăng ca', hint: 'Tạo và quản lý phiếu tăng ca', icon: CalendarClock },
-      { to: `${base}/attendance/leave-request`, label: 'Đơn xin nghỉ', hint: 'Theo dõi trạng thái yêu cầu nghỉ phép', icon: FileText },
-      { to: `${base}/payroll/my-salary`, label: 'Lương của tôi', hint: 'Xem bảng lương cá nhân', icon: Wallet },
-    ]
-  }, [isAdmin, user?.userId])
 
   const recentActivities = useMemo<ActivityItem[]>(() => {
     if (!isAdmin) {

@@ -14,7 +14,7 @@ const adminMainNavItems = [
 function getEmployeeMainNavItems(userId: number) {
   const base = `/employees/${userId}`
   return [
-    { to: `${base}/attendance/daily`, label: 'Dashboard', icon: LayoutGrid },
+    { to: `${base}/attendance/daily`, label: 'Chấm công', icon: LayoutGrid },
     { to: `${base}/attendance/overtime`, label: 'Đăng ký tăng ca', icon: Clock },
     { to: `${base}/attendance/leave-request`, label: 'Đơn xin nghỉ', icon: FileText },
     { to: `${base}/payroll/my-salary`, label: 'Lương của tôi', icon: Wallet },

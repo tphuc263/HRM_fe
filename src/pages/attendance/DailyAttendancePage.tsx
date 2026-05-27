@@ -434,8 +434,8 @@ export default function DailyAttendancePage() {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
-                <TableHead>Mã nhân viên</TableHead>
-                <TableHead>Họ tên</TableHead>
+                {isAdmin && <TableHead>Mã nhân viên</TableHead>}
+                {isAdmin && <TableHead>Họ tên</TableHead>}
                 <TableHead>Ngày</TableHead>
                 <TableHead>Check-in</TableHead>
                 <TableHead>Check-out</TableHead>
@@ -448,21 +448,21 @@ export default function DailyAttendancePage() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={isAdmin ? 9 : 8} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={isAdmin ? 9 : 6} className="text-center py-8 text-muted-foreground">
                     Đang tải dữ liệu...
                   </TableCell>
                 </TableRow>
               ) : rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={isAdmin ? 9 : 8} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={isAdmin ? 9 : 6} className="text-center py-8 text-muted-foreground">
                     {isAdmin ? 'Không có dữ liệu công ngày' : 'Không có dữ liệu chấm công trong khoảng thời gian này'}
                   </TableCell>
                 </TableRow>
               ) : (
                 rows.map((row) => (
                   <TableRow key={`${row.employeeId}-${row.date}-${row.id || 'x'}`}>
-                    <TableCell className="font-medium">{row.employeeCode}</TableCell>
-                    <TableCell>{row.employeeName}</TableCell>
+                    {isAdmin && <TableCell className="font-medium">{row.employeeCode}</TableCell>}
+                    {isAdmin && <TableCell>{row.employeeName}</TableCell>}
                     <TableCell>{formatDate(row.date)}</TableCell>
                     <TableCell>
                       <span className="font-semibold">{formatTime(row.checkIn)}</span>
