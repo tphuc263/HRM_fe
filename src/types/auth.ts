@@ -7,6 +7,7 @@ export interface LoginResponse {
   accessToken?: string
   tokenType?: string
   userId: number
+  employeeId?: number | null // FIX #19
   username: string
   email: string
   role: string
@@ -15,6 +16,7 @@ export interface LoginResponse {
 
 export interface AuthUser {
   userId: number
+  employeeId?: number | null // FIX #19
   username: string
   email: string
   role: string

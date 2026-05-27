@@ -36,7 +36,9 @@ function HomeRedirect() {
   if (user?.role === 'ADMIN') {
     return <Navigate to="/admin" replace />
   }
-  return <Navigate to={`/employees/${user?.userId}/attendance/daily`} replace />
+  // FIX #19: Dùng employeeId thay vì userId để route đúng
+  const empId = user?.employeeId ?? user?.userId
+  return <Navigate to={`/employees/${empId}/attendance/daily`} replace />
 }
 
 function App() {

@@ -23,6 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const me = await authService.me()
       setUser({
         userId: me.userId,
+        employeeId: me.employeeId, // FIX #19
         username: me.username,
         email: me.email,
         role: me.role,
