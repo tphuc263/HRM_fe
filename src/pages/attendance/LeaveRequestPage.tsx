@@ -98,6 +98,7 @@ export default function LeaveRequestPage() {
     startDate: '',
     endDate: '',
     days: 1,
+    halfDaySession: '',
     reason: '',
   })
 
@@ -220,9 +221,10 @@ export default function LeaveRequestPage() {
     try {
       await leaveService.submitRequest({
         ...form,
+        halfDaySession: form.days === 0.5 && form.halfDaySession ? form.halfDaySession : undefined,
         reason: form.reason.trim(),
       })
-      setForm((prev) => ({ ...prev, reason: '', days: 1 }))
+      setForm((prev) => ({ ...prev, reason: '', days: 1, halfDaySession: '' }))
       setShowCreateForm(false)
       await Promise.all([loadRequests(), loadMyBalances()])
     } catch (err) {
@@ -376,7 +378,9 @@ export default function LeaveRequestPage() {
                       <TableCell>{row.leaveTypeName}</TableCell>
                       <TableCell>{formatDate(row.startDate)}</TableCell>
                       <TableCell>{formatDate(row.endDate)}</TableCell>
-                      <TableCell>{Math.round(row.days)}</TableCell>
+                      <TableCell>
+                        {row.days} {row.halfDaySession === 'MORNING' ? '(Sáng)' : row.halfDaySession === 'AFTERNOON' ? '(Chiều)' : ''}
+                      </TableCell>
                       <TableCell><span className={`px-2 py-1 rounded text-xs font-medium ${badgeClass(row.status)}`}>{statusLabel(row.status)}</span></TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-2">
@@ -468,7 +472,22 @@ export default function LeaveRequestPage() {
                   <div>
                     <label className="text-xs font-bold text-slate-500 mb-1 block">Số ngày</label>
                     <Input className="rounded-xl border-slate-200 h-11 focus:ring-[#3d6b59] focus:border-[#3d6b59] transition-all" type="number" min="0.5" step="0.5" value={form.days} onChange={(e) => setForm((prev) => ({ ...prev, days: Number(e.target.value) }))} />
+                    <p className="text-[10px] text-muted-foreground mt-1 italic text-slate-400">* Nhập 0.5 để chọn nghỉ nửa ngày (Sáng/Chiều)</p>
                   </div>
+                  {form.days === 0.5 && (
+                    <div>
+                      <label className="text-xs font-bold text-slate-500 mb-1 block">Buổi nghỉ</label>
+                      <select
+                        className="flex h-11 w-full rounded-xl border border-slate-200 bg-transparent px-3 py-1 text-sm shadow-sm focus:ring-[#3d6b59] focus:border-[#3d6b59] transition-all"
+                        value={form.halfDaySession}
+                        onChange={(e) => setForm((prev) => ({ ...prev, halfDaySession: e.target.value }))}
+                      >
+                        <option value="">-- Chọn buổi --</option>
+                        <option value="MORNING">Sáng</option>
+                        <option value="AFTERNOON">Chiều</option>
+                      </select>
+                    </div>
+                  )}
                   <div className="col-span-1 sm:col-span-2">
                     <label className="text-xs font-bold text-slate-500 mb-1 block">Lý do</label>
                     <Input className="rounded-xl border-slate-200 h-11 focus:ring-[#3d6b59] focus:border-[#3d6b59] transition-all" placeholder="Nhập lý do xin nghỉ..." value={form.reason} onChange={(e) => setForm((prev) => ({ ...prev, reason: e.target.value }))} />
@@ -501,7 +520,7 @@ export default function LeaveRequestPage() {
                   <div key={balance.id} className="rounded border p-3">
                     <div className="text-xs text-muted-foreground">{balance.leaveTypeName}</div>
                     <div className="text-sm mt-1">Con lai: <strong>{Math.round(balance.remainingDays)}</strong> ngay</div>
-                    <div className="text-xs text-muted-foreground mt-1">Tổng: {Math.round(balance.totalDays)} | Đã dùng: {Math.round(balance.usedDays)} | Chuyển năm: {Math.round(balance.carryOverDays)}</div>
+                    <div className="text-xs text-muted-foreground mt-1">Tổng cấp: {Math.round(balance.totalDays)} | Đã dùng: {Math.round(balance.usedDays)}</div>
                   </div>
                 ))}
               </div>

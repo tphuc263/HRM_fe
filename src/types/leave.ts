@@ -25,6 +25,7 @@ export interface LeaveRequestDto {
   startDate: string
   endDate: string
   days: number
+  halfDaySession?: string | null
   reason: string
   attachmentUrl?: string | null
   status: string
@@ -40,6 +41,7 @@ export interface LeaveRequestCreatePayload {
   startDate: string
   endDate: string
   days: number
+  halfDaySession?: string
   reason: string
   attachmentUrl?: string
 }
