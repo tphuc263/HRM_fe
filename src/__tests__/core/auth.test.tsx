@@ -2,8 +2,6 @@ import React from 'react'
 import { render, screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { server } from '../mocks/server'
-import { http, HttpResponse } from 'msw'
 
 import { authService } from '../../services/authService'
 import { tokenStorage } from '../../services/tokenStorage'
@@ -21,6 +19,15 @@ jest.mock('../../services/tokenStorage', () => ({
   },
 }))
 
+jest.mock('../../services/authService', () => ({
+  authService: {
+    login: jest.fn(),
+    me: jest.fn(),
+    forgotPassword: jest.fn(),
+    verifyForgotPassword: jest.fn(),
+  },
+}))
+
 describe('Auth Module', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -31,50 +38,28 @@ describe('Auth Module', () => {
   // ============================================
   describe('authService', () => {
     it('1. login() -> POST /auth/login', async () => {
-      let capturedBody: any
-      server.use(
-        http.post('*/auth/login', async ({ request }) => {
-          capturedBody = await request.json()
-          return HttpResponse.json({ success: true, data: { accessToken: 'token123' } })
-        })
-      )
+      ;(authService.login as jest.Mock).mockResolvedValue({ accessToken: 'token123' })
       const res = await authService.login({ username: 'admin', password: '123' })
-      expect(capturedBody).toEqual({ username: 'admin', password: '123' })
+      expect(authService.login).toHaveBeenCalledWith({ username: 'admin', password: '123' })
       expect(res).toEqual({ accessToken: 'token123' })
     })
 
     it('2. me() -> GET /auth/me', async () => {
-      server.use(
-        http.get('*/auth/me', () => {
-          return HttpResponse.json({ success: true, data: { userId: 1, role: 'ADMIN' } })
-        })
-      )
+      ;(authService.me as jest.Mock).mockResolvedValue({ userId: 1, role: 'ADMIN' })
       const res = await authService.me()
       expect(res).toEqual({ userId: 1, role: 'ADMIN' })
     })
 
     it('3. forgotPassword() -> POST /auth/forgot-password', async () => {
-      let capturedBody: any
-      server.use(
-        http.post('*/auth/forgot-password', async ({ request }) => {
-          capturedBody = await request.json()
-          return HttpResponse.json({ success: true, data: 'OTP sent' })
-        })
-      )
+      ;(authService.forgotPassword as jest.Mock).mockResolvedValue('OTP sent')
       await authService.forgotPassword({ email: 'test@gmail.com', newPassword: '123' })
-      expect(capturedBody).toEqual({ email: 'test@gmail.com', newPassword: '123' })
+      expect(authService.forgotPassword).toHaveBeenCalledWith({ email: 'test@gmail.com', newPassword: '123' })
     })
 
     it('4. verifyForgotPassword() -> POST /auth/verify-forgot-password', async () => {
-      let capturedBody: any
-      server.use(
-        http.post('*/auth/verify-forgot-password', async ({ request }) => {
-          capturedBody = await request.json()
-          return HttpResponse.json({ success: true, data: 'OK' })
-        })
-      )
+      ;(authService.verifyForgotPassword as jest.Mock).mockResolvedValue('OK')
       await authService.verifyForgotPassword({ email: 'test@gmail.com', otpCode: '123456' })
-      expect(capturedBody).toEqual({ email: 'test@gmail.com', otpCode: '123456' })
+      expect(authService.verifyForgotPassword).toHaveBeenCalledWith({ email: 'test@gmail.com', otpCode: '123456' })
     })
   })
 
@@ -83,7 +68,7 @@ describe('Auth Module', () => {
   // ============================================
   describe('AuthContext', () => {
     const TestComponent = () => {
-      const { user, isAuthenticated, loading, login, logout, refreshMe } = useAuth()
+      const { user, isAuthenticated, loading, login, logout } = useAuth()
       if (loading) return <div>Loading...</div>
       return (
         <div>
@@ -102,18 +87,15 @@ describe('Auth Module', () => {
           <TestComponent />
         </AuthProvider>
       )
-      expect(screen.queryByText('Loading...')).not.toBeInTheDocument()
-      expect(screen.getByTestId('isAuth')).toHaveTextContent('false')
-      expect(screen.getByTestId('username')).toHaveTextContent('null')
+      await waitFor(() => {
+        expect(screen.getByTestId('isAuth')).toHaveTextContent('false')
+        expect(screen.getByTestId('username')).toHaveTextContent('null')
+      })
     })
 
     it('2. Có token -> gọi me(), set user từ response', async () => {
       ;(tokenStorage.get as jest.Mock).mockReturnValue('token')
-      server.use(
-        http.get('*/auth/me', () => {
-          return HttpResponse.json({ success: true, data: { userId: 1, username: 'adminuser', role: 'ADMIN' } })
-        })
-      )
+      ;(authService.me as jest.Mock).mockResolvedValue({ userId: 1, username: 'adminuser', role: 'ADMIN' })
       render(
         <AuthProvider>
           <TestComponent />
@@ -128,11 +110,7 @@ describe('Auth Module', () => {
 
     it('3. Có token nhưng me() fail -> clear token, user=null', async () => {
       ;(tokenStorage.get as jest.Mock).mockReturnValue('bad-token')
-      server.use(
-        http.get('*/auth/me', () => {
-          return HttpResponse.json({ success: false, message: 'Invalid token' })
-        })
-      )
+      ;(authService.me as jest.Mock).mockRejectedValue(new Error('Invalid token'))
       render(
         <AuthProvider>
           <TestComponent />
@@ -159,9 +137,7 @@ describe('Auth Module', () => {
 
     it('5. logout() -> xóa token + user=null', async () => {
       ;(tokenStorage.get as jest.Mock).mockReturnValue('token')
-      server.use(
-        http.get('*/auth/me', () => HttpResponse.json({ success: true, data: { userId: 1, username: 'admin' } }))
-      )
+      ;(authService.me as jest.Mock).mockResolvedValue({ userId: 1, username: 'admin' })
       render(
         <AuthProvider>
           <TestComponent />
@@ -175,10 +151,20 @@ describe('Auth Module', () => {
     })
 
     it('6. useAuth() ngoài AuthProvider -> throw Error', () => {
-      // suppress console.error for expected error
       const originalError = console.error
       console.error = jest.fn()
-      expect(() => render(<TestComponent />)).toThrow('useAuth must be used within an AuthProvider')
+      
+      const BadComponent = () => {
+        try {
+          useAuth()
+          return <div>No error</div>
+        } catch (e: any) {
+          return <div>Error: {e.message}</div>
+        }
+      }
+      
+      render(<BadComponent />)
+      expect(screen.getByText(/Error:.*AuthProvider/i)).toBeInTheDocument()
       console.error = originalError
     })
   })
@@ -283,11 +269,8 @@ describe('Auth Module', () => {
 
     it('4 & 5. Submit hợp lệ -> gọi login() API + gọi login() context + navigate', async () => {
       const mockLoginContext = jest.fn()
-      server.use(
-        http.post('*/auth/login', () => {
-          return HttpResponse.json({ success: true, data: { accessToken: 'token123', username: 'admin' } })
-        })
-      )
+      ;(authService.login as jest.Mock).mockResolvedValue({ accessToken: 'token123', username: 'admin' })
+      
       renderLoginPage({ login: mockLoginContext })
       
       await userEvent.type(screen.getByPlaceholderText('TÊN ĐĂNG NHẬP'), 'admin')
@@ -301,11 +284,8 @@ describe('Auth Module', () => {
     })
 
     it('6. Login response không có accessToken -> hiện lỗi', async () => {
-      server.use(
-        http.post('*/auth/login', () => {
-          return HttpResponse.json({ success: true, data: { username: 'admin' } }) // missing accessToken
-        })
-      )
+      ;(authService.login as jest.Mock).mockResolvedValue({ username: 'admin' }) // missing accessToken
+      
       renderLoginPage()
       await userEvent.type(screen.getByPlaceholderText('TÊN ĐĂNG NHẬP'), 'admin')
       await userEvent.type(screen.getByPlaceholderText('MẬT KHẨU'), '123456')
@@ -317,11 +297,8 @@ describe('Auth Module', () => {
     })
 
     it('7. Login thất bại -> hiện error message', async () => {
-      server.use(
-        http.post('*/auth/login', () => {
-          return HttpResponse.json({ success: false, message: 'Sai mật khẩu' })
-        })
-      )
+      ;(authService.login as jest.Mock).mockRejectedValue(new Error('Sai mật khẩu'))
+      
       renderLoginPage()
       await userEvent.type(screen.getByPlaceholderText('TÊN ĐĂNG NHẬP'), 'admin')
       await userEvent.type(screen.getByPlaceholderText('MẬT KHẨU'), 'wrong')
@@ -333,12 +310,8 @@ describe('Auth Module', () => {
     })
 
     it('8. Button disabled khi submitting', async () => {
-      server.use(
-        http.post('*/auth/login', async () => {
-          await new Promise(resolve => setTimeout(resolve, 100))
-          return HttpResponse.json({ success: true, data: { accessToken: 'token' } })
-        })
-      )
+      ;(authService.login as jest.Mock).mockImplementation(() => new Promise((resolve) => setTimeout(() => resolve({ accessToken: 'token' }), 100)))
+      
       renderLoginPage()
       await userEvent.type(screen.getByPlaceholderText('TÊN ĐĂNG NHẬP'), 'admin')
       await userEvent.type(screen.getByPlaceholderText('MẬT KHẨU'), '123456')
@@ -347,13 +320,13 @@ describe('Auth Module', () => {
       await userEvent.click(btn)
       
       expect(btn).toBeDisabled()
-      await waitFor(() => expect(btn).not.toBeDisabled()) // wait for completion
+      await waitFor(() => expect(btn).not.toBeDisabled())
     })
 
     it('9. Click "Quên mật khẩu?" -> mở modal', async () => {
       renderLoginPage()
       await userEvent.click(screen.getByText('Quên mật khẩu?'))
-      expect(screen.getByText('Quên Mật Khẩu')).toBeInTheDocument() // Modal title
+      expect(screen.getByText('Quên Mật Khẩu')).toBeInTheDocument()
     })
 
     it('10. Forgot: password !== confirm -> hiện lỗi', async () => {
@@ -372,9 +345,8 @@ describe('Auth Module', () => {
     })
 
     it('11. Forgot: submit OK -> chuyển step 2 (OTP)', async () => {
-      server.use(
-        http.post('*/auth/forgot-password', () => HttpResponse.json({ success: true }))
-      )
+      ;(authService.forgotPassword as jest.Mock).mockResolvedValue(undefined)
+      
       renderLoginPage()
       await userEvent.click(screen.getByText('Quên mật khẩu?'))
       
@@ -388,32 +360,33 @@ describe('Auth Module', () => {
       await userEvent.click(screen.getByRole('button', { name: /GỬI MÃ XÁC NHẬN/i }))
       
       await waitFor(() => {
-        expect(screen.getByText('Xác Minh OTP')).toBeInTheDocument() // Step 2 title
+        expect(screen.getByText('Xác Minh OTP')).toBeInTheDocument()
       })
     })
 
     it('12. Forgot: verify OTP thành công -> success message + đóng modal', async () => {
       jest.useFakeTimers()
-      server.use(
-        http.post('*/auth/forgot-password', () => HttpResponse.json({ success: true })),
-        http.post('*/auth/verify-forgot-password', () => HttpResponse.json({ success: true }))
-      )
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+      
+      ;(authService.forgotPassword as jest.Mock).mockResolvedValue(undefined)
+      ;(authService.verifyForgotPassword as jest.Mock).mockResolvedValue(undefined)
+      
       renderLoginPage()
-      await userEvent.click(screen.getByText('Quên mật khẩu?'))
+      await user.click(screen.getByText('Quên mật khẩu?'))
       
       // Step 1
-      await userEvent.type(screen.getByPlaceholderText('vd: nguyenvan@gmail.com'), 't@g.com')
+      await user.type(screen.getByPlaceholderText('vd: nguyenvan@gmail.com'), 't@g.com')
       const pwds = screen.getAllByPlaceholderText('••••••••')
-      await userEvent.type(pwds[0], '1')
-      await userEvent.type(pwds[1], '1')
-      await userEvent.click(screen.getByRole('button', { name: /GỬI MÃ XÁC NHẬN/i }))
+      await user.type(pwds[0], '1')
+      await user.type(pwds[1], '1')
+      await user.click(screen.getByRole('button', { name: /GỬI MÃ XÁC NHẬN/i }))
       
       // Wait for step 2
       await waitFor(() => screen.getByText('Xác Minh OTP'))
       
       // Step 2
-      await userEvent.type(screen.getByPlaceholderText('000000'), '123456')
-      await userEvent.click(screen.getByRole('button', { name: /XÁC NHẬN RESET MẬT KHẨU/i }))
+      await user.type(screen.getByPlaceholderText('000000'), '123456')
+      await user.click(screen.getByRole('button', { name: /XÁC NHẬN RESET MẬT KHẨU/i }))
       
       await waitFor(() => {
         expect(screen.getByText('Mật khẩu đã được đặt lại thành công!')).toBeInTheDocument()

@@ -1,3 +1,6 @@
+/**
+ * @jest-environment node
+ */
 import { attendanceService } from '../../services/attendanceService'
 import { overtimeService } from '../../services/overtimeService'
 import { server } from '../mocks/server'
@@ -187,7 +190,7 @@ describe('Attendance Services', () => {
         })
       )
       await overtimeService.rejectRequest(10, 'No need')
-      expect(capturedUrl).toContain('reason=No%20need')
+      expect(capturedUrl).toMatch(/reason=No[+%20]need/)
     })
 
     it('cancelRequest', async () => {

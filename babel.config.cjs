@@ -1,11 +1,21 @@
 module.exports = {
   presets: [
-    ['@babel/preset-env', { targets: { node: 'current' } }],
+    ['@babel/preset-env', { targets: { node: 'current' }, modules: 'commonjs' }],
     '@babel/preset-typescript',
     ['@babel/preset-react', { runtime: 'automatic' }],
   ],
   plugins: [
-    'babel-plugin-transform-import-meta'
+    // Custom inline plugin to handle import.meta → process.env fallback
+    function importMetaPlugin() {
+      return {
+        visitor: {
+          MetaProperty(path) {
+            // Replace `import.meta` with `{ env: process.env }`
+            path.replaceWithSourceString('({ env: process.env })');
+          },
+        },
+      };
+    },
   ],
-  sourceType: 'unambiguous'
+  sourceType: 'module',
 };

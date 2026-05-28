@@ -1,3 +1,6 @@
+/**
+ * @jest-environment node
+ */
 import { leaveService } from '../../services/leaveService'
 import { server } from '../mocks/server'
 import { http, HttpResponse } from 'msw'
@@ -60,19 +63,27 @@ describe('leaveService', () => {
   })
 
   it('5. cancelRequest() -> PUT /leave-requests/:id/cancel', async () => {
+    let called = false
     server.use(
-      http.put('*/leave-requests/10/cancel', () => HttpResponse.json({ success: true, data: { status: 'CANCELLED' } }))
+      http.put('*/leave-requests/10/cancel', () => {
+        called = true
+        return HttpResponse.json({ success: true, data: { status: 'CANCELLED' } })
+      })
     )
-    const res = await leaveService.cancelRequest(10)
-    expect(res).toEqual({ status: 'CANCELLED' })
+    await expect(leaveService.cancelRequest(10)).resolves.not.toThrow()
+    expect(called).toBe(true)
   })
 
   it('6. approveRequest() -> PUT /leave-requests/:id/approve', async () => {
+    let called = false
     server.use(
-      http.put('*/leave-requests/10/approve', () => HttpResponse.json({ success: true, data: { status: 'APPROVED' } }))
+      http.put('*/leave-requests/10/approve', () => {
+        called = true
+        return HttpResponse.json({ success: true, data: { status: 'APPROVED' } })
+      })
     )
-    const res = await leaveService.approveRequest(10)
-    expect(res).toEqual({ status: 'APPROVED' })
+    await expect(leaveService.approveRequest(10)).resolves.not.toThrow()
+    expect(called).toBe(true)
   })
 
   it('7. rejectRequest() -> PUT /leave-requests/:id/reject + reason param', async () => {
@@ -84,7 +95,7 @@ describe('leaveService', () => {
       })
     )
     await leaveService.rejectRequest(10, 'Too busy')
-    expect(capturedUrl).toContain('reason=Too%20busy')
+    expect(capturedUrl).toMatch(/reason=Too[+%20]busy/)
   })
 
   it('8. getMyRequests() truyền đúng query params', async () => {

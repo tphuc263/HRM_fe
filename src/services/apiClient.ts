@@ -44,7 +44,7 @@ instance.interceptors.response.use(
   (error) => {
     if (error?.response?.status === 401) {
       tokenStorage.clear()
-      if (window.location.pathname !== '/login') {
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
         window.location.href = '/login'
       }
     }

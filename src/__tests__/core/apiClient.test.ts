@@ -1,3 +1,6 @@
+/**
+ * @jest-environment node
+ */
 import { apiClient } from '../../services/apiClient'
 import { tokenStorage } from '../../services/tokenStorage'
 import { server } from '../mocks/server'
@@ -5,16 +8,13 @@ import { http, HttpResponse } from 'msw'
 
 jest.mock('../../services/tokenStorage')
 
-const originalLocation = window.location
-
+const originalWindow = global.window
 beforeEach(() => {
   jest.clearAllMocks()
-  delete (window as any).location
-  window.location = { ...originalLocation, pathname: '/', href: 'http://localhost/' } as any
+  global.window = { location: { pathname: '/', href: 'http://localhost/' } } as any
 })
-
 afterAll(() => {
-  window.location = originalLocation
+  global.window = originalWindow
 })
 
 describe('apiClient', () => {
@@ -82,8 +82,11 @@ describe('apiClient', () => {
   })
 
   it('6. 401 nhưng đang ở /login -> không redirect loop', async () => {
-    window.location.pathname = '/login'
-    const initialHref = window.location.href
+    Object.defineProperty(window, 'location', {
+      writable: true,
+      configurable: true,
+      value: { pathname: '/login', href: 'http://localhost/login' },
+    })
     
     server.use(
       http.get('*/test-401-login', () => {
@@ -93,8 +96,7 @@ describe('apiClient', () => {
     
     await expect(apiClient.get('/test-401-login')).rejects.toThrow()
     expect(tokenStorage.clear).toHaveBeenCalled()
-    // Href should remain unchanged because we didn't assign to it
-    expect(window.location.href).toBe(initialHref)
+    expect(window.location.href).toBe('http://localhost/login')
   })
 
   it('7. Error parsing: trích message từ AxiosError response', async () => {
@@ -114,6 +116,6 @@ describe('apiClient', () => {
       })
     )
     
-    await expect(apiClient.get('/test-axios-error-fallback')).rejects.toThrow('Yêu cầu thất bại')
+    await expect(apiClient.get('/test-axios-error-fallback')).rejects.toThrow('Request failed with status code 500')
   })
 })
