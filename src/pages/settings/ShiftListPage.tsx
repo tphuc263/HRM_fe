@@ -176,6 +176,7 @@ export default function ShiftListPage() {
       } else if (editingId) {
         await shiftService.update(editingId, payload)
       }
+      toast.success(formMode === 'create' ? 'Đã tạo ca làm việc thành công' : 'Cập nhật ca làm việc thành công')
       setShowFormModal(false)
       await loadShifts()
     } catch (err) {

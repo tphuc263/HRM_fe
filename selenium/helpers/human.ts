@@ -6,7 +6,7 @@ import { WebDriver } from 'selenium-webdriver';
  * @param min Minimum delay in ms (default: 1000)
  * @param max Maximum delay in ms (default: 2500)
  */
-export async function humanDelay(driver: WebDriver, min: number = 2000, max: number = 4000) {
+export async function humanDelay(driver: WebDriver, min: number = 1000, max: number = 1500) {
   const delay = Math.floor(Math.random() * (max - min + 1) + min);
   await driver.sleep(delay);
 }
@@ -25,7 +25,7 @@ export async function simulateHumanScroll(driver: WebDriver, pixels: number = 50
     });
   `, pixels);
   // Wait for the scroll to finish and user to "read"
-  await humanDelay(driver, 800, 1500);
+  await humanDelay(driver, 800, 1000);
 }
 
 /**
@@ -39,7 +39,7 @@ export async function simulateHumanScrollUp(driver: WebDriver, pixels: number = 
       behavior: 'smooth'
     });
   `, pixels);
-  await humanDelay(driver, 1000, 2000);
+  await humanDelay(driver, 1000, 1500);
 }
 
 /**
@@ -51,6 +51,6 @@ export async function simulateHumanScrollUp(driver: WebDriver, pixels: number = 
 export async function humanType(driver: WebDriver, element: any, text: string) {
   for (const char of text) {
     await element.sendKeys(char);
-    await driver.sleep(Math.floor(Math.random() * 100) + 50); // 50-150ms per char
+    await driver.sleep(Math.floor(Math.random() * 100) + 40); // 50-150ms per char
   }
 }

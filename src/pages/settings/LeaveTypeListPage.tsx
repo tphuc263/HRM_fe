@@ -4,6 +4,7 @@ import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Checkbox } from '../../components/ui/checkbox'
 import { leaveService } from '../../services/leaveService'
+import { useToast } from '../../context/ToastContext'
 import type { LeaveTypeDto, LeaveTypeUpsertPayload } from '../../types/leave'
 
 function LeaveTypeModal({
@@ -38,6 +39,7 @@ const initialForm: LeaveTypeUpsertPayload = {
 }
 
 export default function LeaveTypeListPage() {
+  const toast = useToast()
   const [leaveTypes, setLeaveTypes] = useState<LeaveTypeDto[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -121,6 +123,7 @@ export default function LeaveTypeListPage() {
           description: form.description?.trim() || undefined,
         })
       }
+      toast.success(formMode === 'create' ? 'Đã tạo loại phép thành công' : 'Cập nhật loại phép thành công')
       setShowFormModal(false)
       await loadLeaveTypes()
     } catch (err) {

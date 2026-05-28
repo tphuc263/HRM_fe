@@ -164,6 +164,7 @@ export default function HolidayListPage() {
       } else if (editingId) {
         await holidayService.update(editingId, form)
       }
+      toast.success(formMode === 'create' ? 'Đã tạo ngày lễ thành công' : 'Cập nhật ngày lễ thành công')
       setShowFormModal(false)
       await loadHolidays()
     } catch (err) {

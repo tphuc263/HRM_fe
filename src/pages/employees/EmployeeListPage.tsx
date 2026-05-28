@@ -135,8 +135,20 @@ export default function EmployeeListPage() {
   const isAdmin = user?.role === 'ADMIN'
 
   const [filters, setFilters] = useState<FilterState>(defaultFilters)
+  const [searchInput, setSearchInput] = useState(defaultFilters.search)
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [currentPage, setCurrentPage] = useState(1)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFilters(prev => {
+        if (prev.search === searchInput) return prev;
+        setCurrentPage(1);
+        return { ...prev, search: searchInput };
+      })
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [searchInput])
 
   const [confirmConfig, setConfirmConfig] = useState<{
     isOpen: boolean
@@ -403,8 +415,10 @@ export default function EmployeeListPage() {
       })
       if (formMode === 'create' && result.generatedAccount) {
         setCreatedAccount(result.generatedAccount)
+        toast.success('Đã tạo nhân viên thành công')
       } else {
         setShowFormModal(false)
+        toast.success('Cập nhật nhân viên thành công')
       }
     } catch (err) {
       setFormError((err as Error).message)
@@ -515,10 +529,9 @@ export default function EmployeeListPage() {
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               placeholder="Tìm kiếm nhân viên"
-              value={filters.search}
+              value={searchInput}
               onChange={(e) => {
-                setFilters((prev) => ({ ...prev, search: e.target.value }))
-                setCurrentPage(1)
+                setSearchInput(e.target.value)
               }}
               className="pl-8 w-44 h-8"
             />

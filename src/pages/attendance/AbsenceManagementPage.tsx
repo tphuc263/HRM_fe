@@ -130,7 +130,20 @@ export default function AbsenceManagementPage() {
       await attendanceService.markAbsent(employeeId, markDate, note || undefined)
       setNote('')
       toast.success('Đánh vắng mặt thành công')
-      await loadData()
+
+      let changedDate = false
+      if (markDate > toDate) {
+        setToDate(markDate)
+        changedDate = true
+      }
+      if (markDate < fromDate) {
+        setFromDate(markDate)
+        changedDate = true
+      }
+
+      if (!changedDate) {
+        await loadData()
+      }
     } catch (err) {
       toast.error((err as Error).message)
       setError((err as Error).message)

@@ -149,6 +149,7 @@ export default function DepartmentListPage() {
           description: form.description?.trim() || undefined,
         })
       }
+      toast.success(formMode === 'create' ? 'Đã tạo phòng ban thành công' : 'Cập nhật phòng ban thành công')
       setShowFormModal(false)
       await loadDepartments()
     } catch (err) {
