@@ -103,22 +103,7 @@ function toApiQuery(filters: FilterState, currentPage: number): EmployeeListQuer
   }
 }
 
-function csvEscape(value: string | number | null | undefined) {
-  const raw = value == null ? '' : String(value)
-  const escaped = raw.replaceAll('"', '""')
-  return `"${escaped}"`
-}
 
-function downloadCsv(fileName: string, rows: string[][]) {
-  const csvContent = ['\uFEFF' + rows.map((r) => r.map(csvEscape).join(',')).join('\n')]
-  const blob = new Blob(csvContent, { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const anchor = document.createElement('a')
-  anchor.href = url
-  anchor.download = fileName
-  anchor.click()
-  URL.revokeObjectURL(url)
-}
 
 function EmployeeModal({
   title,

@@ -53,21 +53,7 @@ function statusLabel(status?: string | null) {
   return map[status] || status
 }
 
-function csvEscape(value: string | number | null | undefined) {
-  const raw = value == null ? '' : String(value)
-  return `"${raw.replaceAll('"', '""')}"`
-}
 
-function downloadCsv(fileName: string, rows: string[][]) {
-  const csvContent = ['\uFEFF' + rows.map((r) => r.map(csvEscape).join(',')).join('\n')]
-  const blob = new Blob(csvContent, { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const anchor = document.createElement('a')
-  anchor.href = url
-  anchor.download = fileName
-  anchor.click()
-  URL.revokeObjectURL(url)
-}
 
 function getCoordinates(): Promise<{ latitude: number; longitude: number }> {
   return new Promise((resolve, reject) => {
@@ -135,7 +121,7 @@ export default function DailyAttendancePage() {
   const toast = useToast()
   const isAdmin = user?.role === 'ADMIN'
 
-  const [date, setDate] = useState(toIsoDate(new Date()))
+
   const [fromDate, setFromDate] = useState(() => {
     const now = new Date()
     return toIsoDate(new Date(now.getFullYear(), now.getMonth(), 1))
@@ -197,8 +183,9 @@ export default function DailyAttendancePage() {
     setError('')
     try {
       if (isAdmin) {
-        const pageData = await attendanceService.getDaily({
-          date,
+        const pageData = await attendanceService.getRange({
+          fromDate,
+          toDate,
           keyword: search.trim() || undefined,
           page: currentPage - 1,
           size: PAGE_SIZE,
@@ -230,7 +217,7 @@ export default function DailyAttendancePage() {
     } finally {
       setLoading(false)
     }
-  }, [currentPage, date, fromDate, toDate, isAdmin, search])
+  }, [currentPage, fromDate, toDate, isAdmin, search])
 
   useEffect(() => {
     void loadData()
@@ -240,7 +227,7 @@ export default function DailyAttendancePage() {
     if (currentPage !== 1) {
       setCurrentPage(1)
     }
-  }, [date, fromDate, toDate, search])
+  }, [fromDate, toDate, search])
 
   const handleCheckIn = async () => {
     setActionLoading(true)
@@ -302,9 +289,7 @@ export default function DailyAttendancePage() {
       ]),
     ]
 
-    const fileName = isAdmin
-      ? `attendance-daily-${date}-page-${currentPage}`
-      : `attendance-history-${fromDate}-to-${toDate}-page-${currentPage}`
+    const fileName = `attendance-${isAdmin ? 'admin' : 'history'}-${fromDate}-to-${toDate}-page-${currentPage}`
     downloadExcel(fileName, csvRows[0], csvRows.slice(1))
   }
 
@@ -344,90 +329,77 @@ export default function DailyAttendancePage() {
         </div>
 
         <div className="bg-white border rounded-md p-4 mb-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
+          <div className="flex flex-wrap items-end gap-4">
+            <div className="flex-1 min-w-[250px]">
               <label className="text-sm text-muted-foreground mb-1 block">
                 {isAdmin ? 'Nhân viên / trạng thái' : 'Trạng thái công'}
               </label>
               <div className="relative">
                 <Input
                   placeholder={isAdmin ? "Tìm theo tên, mã, trạng thái" : "Tìm theo trạng thái..."}
-                  className="pr-8"
+                  className="pr-8 h-10"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
                 <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               </div>
             </div>
-            {isAdmin ? (
-              <div>
-                <label className="text-sm text-muted-foreground mb-1 block">Theo ngày</label>
-                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-              </div>
-            ) : (
-              <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm text-muted-foreground mb-1 block">Từ ngày</label>
-                  <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
-                </div>
-                <div>
-                  <label className="text-sm text-muted-foreground mb-1 block">Đến ngày</label>
-                  <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
-                </div>
-              </div>
-            )}
+            <div>
+              <label className="text-sm text-muted-foreground mb-1 block">Từ ngày</label>
+              <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-[150px] h-10" />
+            </div>
+            <div>
+              <label className="text-sm text-muted-foreground mb-1 block">Đến ngày</label>
+              <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-[150px] h-10" />
+            </div>
             {isAdmin && (
-              <div className="flex items-end">
-                <Button variant="outline" onClick={() => void loadData()}>
-                  <RefreshCw className="h-4 w-4" />
-                  Tải lại
-                </Button>
-              </div>
+              <Button variant="outline" onClick={() => void loadData()} className="h-10">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Tải lại
+              </Button>
             )}
           </div>
 
-          {!isAdmin && (
-            <div className="mt-4 pt-4 border-t flex flex-wrap items-center justify-between gap-4">
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setQuickRange('last_7_days')}
-                  className="rounded-full hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition-all text-xs"
-                >
-                  7 ngày qua
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setQuickRange('last_30_days')}
-                  className="rounded-full hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition-all text-xs"
-                >
-                  30 ngày qua
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setQuickRange('this_month')}
-                  className="rounded-full hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition-all text-xs"
-                >
-                  Tháng này
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setQuickRange('last_month')}
-                  className="rounded-full hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition-all text-xs"
-                >
-                  Tháng trước
-                </Button>
-              </div>
-              <Button variant="outline" size="sm" onClick={() => void loadData()} className="h-8">
-                <RefreshCw className="h-3.5 w-3.5 mr-1" />
-                Tải lại
+          <div className="mt-4 pt-4 border-t flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setQuickRange('last_7_days')}
+                className="rounded-full hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition-all text-xs"
+              >
+                7 ngày qua
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setQuickRange('last_30_days')}
+                className="rounded-full hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition-all text-xs"
+              >
+                30 ngày qua
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setQuickRange('this_month')}
+                className="rounded-full hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition-all text-xs"
+              >
+                Tháng này
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setQuickRange('last_month')}
+                className="rounded-full hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition-all text-xs"
+              >
+                Tháng trước
               </Button>
             </div>
-          )}
+            <Button variant="outline" size="sm" onClick={() => void loadData()} className="h-8">
+              <RefreshCw className="h-3.5 w-3.5 mr-1" />
+              Tải lại
+            </Button>
+          </div>
           {error && <p className="text-sm text-destructive mt-3">{error}</p>}
         </div>
 

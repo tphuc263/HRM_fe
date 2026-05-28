@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { RefreshCw, Search, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, UserMinus } from 'lucide-react'
+import { RefreshCw, Search, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, UserMinus, Loader2 } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
@@ -8,6 +8,7 @@ import { employeeService } from '../../services/employeeService'
 import type { AttendanceRecordDto } from '../../types/attendance'
 import type { EmployeeDto } from '../../types/hrm'
 import { useAuth } from '../../context/useAuth'
+import { useToast } from '../../context/ToastContext'
 
 const PAGE_SIZE = 10
 
@@ -29,6 +30,7 @@ function formatTime(value?: string | null) {
 export default function AbsenceManagementPage() {
   const { user } = useAuth()
   const isAdmin = user?.role === 'ADMIN'
+  const toast = useToast()
 
   const [rows, setRows] = useState<AttendanceRecordDto[]>([])
   const [employees, setEmployees] = useState<EmployeeDto[]>([])
@@ -127,8 +129,10 @@ export default function AbsenceManagementPage() {
     try {
       await attendanceService.markAbsent(employeeId, markDate, note || undefined)
       setNote('')
+      toast.success('Đánh vắng mặt thành công')
       await loadData()
     } catch (err) {
+      toast.error((err as Error).message)
       setError((err as Error).message)
     } finally {
       setMarking(false)
@@ -169,7 +173,7 @@ export default function AbsenceManagementPage() {
               </div>
               <div className="flex items-end">
                 <Button onClick={() => void handleMarkAbsent()} disabled={marking || !employeeId}>
-                  <Plus className="h-4 w-4" />
+                  {marking ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-1" />}
                   Đánh vắng mặt
                 </Button>
               </div>
