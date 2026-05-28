@@ -4,8 +4,6 @@
 import { leaveService } from '../../services/leaveService'
 import { server } from '../mocks/server'
 import { http, HttpResponse } from 'msw'
-import { tokenStorage } from '../../services/tokenStorage'
-
 jest.mock('../../services/tokenStorage', () => ({
   tokenStorage: {
     get: jest.fn().mockReturnValue('mock-token'),
@@ -33,6 +31,7 @@ describe('leaveService', () => {
         return HttpResponse.json({ success: true, data: { id: 1 } })
       })
     )
+    // @ts-ignore
     await leaveService.createLeaveType({ name: 'SL', defaultDays: 10, requiresApproval: true })
     expect(capturedBody).toEqual({ name: 'SL', defaultDays: 10, requiresApproval: true })
   })
@@ -45,6 +44,7 @@ describe('leaveService', () => {
         return HttpResponse.json({ success: true, data: { id: 1 } })
       })
     )
+    // @ts-ignore
     await leaveService.updateLeaveType(1, { name: 'SL Updated', defaultDays: 15, requiresApproval: false })
     expect(capturedBody).toEqual({ name: 'SL Updated', defaultDays: 15, requiresApproval: false })
   })
@@ -58,6 +58,7 @@ describe('leaveService', () => {
       })
     )
     const payload = { leaveTypeId: 1, startDate: '2023-01-01', endDate: '2023-01-02', reason: 'Sick' }
+    // @ts-ignore
     await leaveService.submitRequest(payload)
     expect(capturedBody).toEqual(payload)
   })

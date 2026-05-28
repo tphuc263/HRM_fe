@@ -55,6 +55,7 @@ describe('Attendance Services', () => {
           return HttpResponse.json({ success: true, data: { content: [] } })
         })
       )
+      // @ts-ignore
       await attendanceService.getMyRecords({ page: 0, status: 'PRESENT' })
       expect(capturedUrl).toContain('status=PRESENT')
       expect(capturedUrl).toContain('page=0')
@@ -89,7 +90,7 @@ describe('Attendance Services', () => {
       server.use(
         http.get('*/attendance/employee/5', () => HttpResponse.json({ success: true, data: { content: [] } }))
       )
-      const res = await attendanceService.getEmployeeRecords(5, {})
+      const res = await attendanceService.getEmployeeRecords(5, {} as any)
       expect(res).toEqual({ content: [] })
     })
 
@@ -145,6 +146,7 @@ describe('Attendance Services', () => {
           return HttpResponse.json({ success: true, data: { id: 1 } })
         })
       )
+      // @ts-ignore
       await overtimeService.createRequest({ date: '2023-01-01', hours: 2, reason: 'Fix bug' })
       expect(capturedBody).toEqual({ date: '2023-01-01', hours: 2, reason: 'Fix bug' })
     })

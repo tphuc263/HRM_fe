@@ -1,4 +1,3 @@
-import React from 'react'
 import { render, screen, waitFor } from '../test-utils'
 import userEvent from '@testing-library/user-event'
 
@@ -217,7 +216,6 @@ describe('Payroll Pages', () => {
 
     it('2. Download PDF gọi html2pdf', async () => {
       const html2pdf = require('html2pdf.js')
-      const mockSave = jest.fn()
       html2pdf.mockReturnValue({
         from: jest.fn().mockReturnThis(),
         set: jest.fn().mockReturnThis(),

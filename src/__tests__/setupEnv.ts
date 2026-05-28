@@ -7,6 +7,7 @@ Object.assign(global, { TransformStream, ReadableStream, WritableStream });
 
 // Polyfill BroadcastChannel for MSW
 if (typeof global.BroadcastChannel === 'undefined') {
+  // @ts-ignore
   global.BroadcastChannel = class BroadcastChannel {
     constructor() {}
     postMessage() {}

@@ -1,5 +1,5 @@
-import React, { ReactElement } from 'react';
-import { render, RenderOptions } from '@testing-library/react';
+import React, { type ReactElement } from 'react';
+import { render, type RenderOptions } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '../context/AuthContext';
@@ -13,7 +13,7 @@ const createTestQueryClient = () => new QueryClient({
 });
 
 // Full provider wrapper including AuthProvider (for components that need real auth context)
-const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
+export const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
   const queryClient = createTestQueryClient();
   return (
     <QueryClientProvider client={queryClient}>

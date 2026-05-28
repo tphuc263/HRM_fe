@@ -39,6 +39,7 @@ describe('HRM Services', () => {
           return HttpResponse.json({ success: true, data: { id: 1 } })
         })
       )
+      // @ts-ignore
       await employeeService.create({ name: 'Test', email: 'test@t.com', code: 'T', phone: '1', departmentId: 1, position: 'Dev' })
       expect(capturedBody.name).toBe('Test')
     })
