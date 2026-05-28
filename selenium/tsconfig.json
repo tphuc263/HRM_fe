@@ -1,0 +1,15 @@
+{
+  "extends": "../tsconfig.node.json",
+  "compilerOptions": {
+    "types": ["jest", "node"],
+    "verbatimModuleSyntax": false,
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "allowImportingTsExtensions": false,
+    "noEmit": false,
+    "erasableSyntaxOnly": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": ["**/*.ts"]
+}

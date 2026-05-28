@@ -224,10 +224,12 @@ export default function LeaveRequestPage() {
         halfDaySession: form.days === 0.5 && form.halfDaySession ? form.halfDaySession : undefined,
         reason: form.reason.trim(),
       })
+      toast.success('Tạo đơn xin nghỉ thành công')
       setForm((prev) => ({ ...prev, reason: '', days: 1, halfDaySession: '' }))
       setShowCreateForm(false)
       await Promise.all([loadRequests(), loadMyBalances()])
     } catch (err) {
+      toast.error((err as Error).message)
       setError((err as Error).message)
     } finally {
       setSubmitLoading(false)
@@ -238,8 +240,10 @@ export default function LeaveRequestPage() {
     setActionLoadingId(id)
     try {
       await leaveService.approveRequest(id)
+      toast.success('Đã duyệt đơn xin nghỉ')
       await Promise.all([loadRequests(), loadAdminBalances(), loadMyBalances()])
     } catch (err) {
+      toast.error((err as Error).message)
       setError((err as Error).message)
     } finally {
       setActionLoadingId(null)
@@ -257,8 +261,10 @@ export default function LeaveRequestPage() {
     setActionLoadingId(id)
     try {
       await leaveService.cancelRequest(id)
+      toast.success('Đã hủy đơn xin nghỉ')
       await loadRequests()
     } catch (err) {
+      toast.error((err as Error).message)
       setError((err as Error).message)
     } finally {
       setActionLoadingId(null)
@@ -306,10 +312,12 @@ export default function LeaveRequestPage() {
               onChange={(e) => setYear(Number(e.target.value))}
             />
           </div>
-          <Button variant="secondary" size="sm" onClick={() => setShowCreateForm(true)} className="bg-white text-[#3d6b59] hover:bg-white/90 font-medium">
-            <Plus className="h-4 w-4 mr-1" />
-            Tạo đơn nghỉ mới
-          </Button>
+          {!isAdmin && (
+            <Button variant="secondary" size="sm" onClick={() => setShowCreateForm(true)} className="bg-white text-[#3d6b59] hover:bg-white/90 font-medium">
+              <Plus className="h-4 w-4 mr-1" />
+              Tạo đơn nghỉ mới
+            </Button>
+          )}
         </div>
       </div>
       <div className="p-6 overflow-auto flex-1 space-y-4">
@@ -610,6 +618,7 @@ export default function LeaveRequestPage() {
             toast.success('Đã từ chối đơn xin nghỉ')
             await loadRequests()
           } catch (err) {
+            toast.error((err as Error).message)
             setError((err as Error).message)
           } finally {
             setActionLoadingId(null)

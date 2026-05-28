@@ -1,0 +1,141 @@
+import { leaveService } from '../../services/leaveService'
+import { server } from '../mocks/server'
+import { http, HttpResponse } from 'msw'
+import { tokenStorage } from '../../services/tokenStorage'
+
+jest.mock('../../services/tokenStorage', () => ({
+  tokenStorage: {
+    get: jest.fn().mockReturnValue('mock-token'),
+  }
+}))
+
+describe('leaveService', () => {
+  afterEach(() => {
+    jest.clearAllMocks()
+  })
+
+  it('1. getLeaveTypes() -> GET /leave-types', async () => {
+    server.use(
+      http.get('*/leave-types', () => HttpResponse.json({ success: true, data: [{ id: 1, name: 'AL' }] }))
+    )
+    const res = await leaveService.getLeaveTypes()
+    expect(res).toEqual([{ id: 1, name: 'AL' }])
+  })
+
+  it('2. createLeaveType() -> POST /leave-types', async () => {
+    let capturedBody: any
+    server.use(
+      http.post('*/leave-types', async ({ request }) => {
+        capturedBody = await request.json()
+        return HttpResponse.json({ success: true, data: { id: 1 } })
+      })
+    )
+    await leaveService.createLeaveType({ name: 'SL', defaultDays: 10, requiresApproval: true })
+    expect(capturedBody).toEqual({ name: 'SL', defaultDays: 10, requiresApproval: true })
+  })
+
+  it('3. updateLeaveType() -> PUT /leave-types/:id', async () => {
+    let capturedBody: any
+    server.use(
+      http.put('*/leave-types/1', async ({ request }) => {
+        capturedBody = await request.json()
+        return HttpResponse.json({ success: true, data: { id: 1 } })
+      })
+    )
+    await leaveService.updateLeaveType(1, { name: 'SL Updated', defaultDays: 15, requiresApproval: false })
+    expect(capturedBody).toEqual({ name: 'SL Updated', defaultDays: 15, requiresApproval: false })
+  })
+
+  it('4. submitRequest() -> POST /leave-requests', async () => {
+    let capturedBody: any
+    server.use(
+      http.post('*/leave-requests', async ({ request }) => {
+        capturedBody = await request.json()
+        return HttpResponse.json({ success: true, data: { id: 10 } })
+      })
+    )
+    const payload = { leaveTypeId: 1, startDate: '2023-01-01', endDate: '2023-01-02', reason: 'Sick' }
+    await leaveService.submitRequest(payload)
+    expect(capturedBody).toEqual(payload)
+  })
+
+  it('5. cancelRequest() -> PUT /leave-requests/:id/cancel', async () => {
+    server.use(
+      http.put('*/leave-requests/10/cancel', () => HttpResponse.json({ success: true, data: { status: 'CANCELLED' } }))
+    )
+    const res = await leaveService.cancelRequest(10)
+    expect(res).toEqual({ status: 'CANCELLED' })
+  })
+
+  it('6. approveRequest() -> PUT /leave-requests/:id/approve', async () => {
+    server.use(
+      http.put('*/leave-requests/10/approve', () => HttpResponse.json({ success: true, data: { status: 'APPROVED' } }))
+    )
+    const res = await leaveService.approveRequest(10)
+    expect(res).toEqual({ status: 'APPROVED' })
+  })
+
+  it('7. rejectRequest() -> PUT /leave-requests/:id/reject + reason param', async () => {
+    let capturedUrl = ''
+    server.use(
+      http.put('*/leave-requests/10/reject', ({ request }) => {
+        capturedUrl = request.url
+        return HttpResponse.json({ success: true, data: { status: 'REJECTED' } })
+      })
+    )
+    await leaveService.rejectRequest(10, 'Too busy')
+    expect(capturedUrl).toContain('reason=Too%20busy')
+  })
+
+  it('8. getMyRequests() truyền đúng query params', async () => {
+    let capturedUrl = ''
+    server.use(
+      http.get('*/leave-requests/my', ({ request }) => {
+        capturedUrl = request.url
+        return HttpResponse.json({ success: true, data: { content: [] } })
+      })
+    )
+    await leaveService.getMyRequests({ status: 'PENDING', page: 0, size: 10 })
+    expect(capturedUrl).toContain('status=PENDING')
+    expect(capturedUrl).toContain('page=0')
+    expect(capturedUrl).toContain('size=10')
+  })
+
+  it('9. getMyBalances() truyền year', async () => {
+    let capturedUrl = ''
+    server.use(
+      http.get('*/leave-balances/my', ({ request }) => {
+        capturedUrl = request.url
+        return HttpResponse.json({ success: true, data: [] })
+      })
+    )
+    await leaveService.getMyBalances(2023)
+    expect(capturedUrl).toContain('year=2023')
+  })
+
+  it('10. initBalance() -> POST /leave-balances/init với employeeId + year', async () => {
+    let capturedUrl = ''
+    server.use(
+      http.post('*/leave-balances/init', ({ request }) => {
+        capturedUrl = request.url
+        return HttpResponse.json({ success: true, data: null })
+      })
+    )
+    await leaveService.initBalance(5, 2023)
+    expect(capturedUrl).toContain('employeeId=5')
+    expect(capturedUrl).toContain('year=2023')
+  })
+
+  it('11. updateBalance() -> PUT /leave-balances/:id với totalDays, carryOverDays', async () => {
+    let capturedUrl = ''
+    server.use(
+      http.put('*/leave-balances/20', ({ request }) => {
+        capturedUrl = request.url
+        return HttpResponse.json({ success: true, data: { id: 20 } })
+      })
+    )
+    await leaveService.updateBalance(20, 15, 2)
+    expect(capturedUrl).toContain('totalDays=15')
+    expect(capturedUrl).toContain('carryOverDays=2')
+  })
+})

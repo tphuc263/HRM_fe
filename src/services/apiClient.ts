@@ -2,7 +2,9 @@ import axios, { type AxiosRequestConfig } from 'axios'
 import type { ApiResponse } from '../types/api'
 import { tokenStorage } from './tokenStorage'
 
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? '/api/v1'
+const apiBaseUrl = (typeof process !== 'undefined' && process.env.VITE_API_BASE_URL) 
+  ? process.env.VITE_API_BASE_URL 
+  : (import.meta as any).env?.VITE_API_BASE_URL ?? '/api/v1';
 
 const instance = axios.create({
   baseURL: apiBaseUrl,
