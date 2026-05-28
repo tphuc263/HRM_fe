@@ -3,12 +3,12 @@ import { Modal } from '../ui/modal';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 
-import { Plus, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Trash2 } from 'lucide-react';
 
 interface GeneratePayrollModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onGenerate: (month: number, year: number, workDays: number, defaultAllowances: Record<string, number>, defaultDeductions: Record<string, number>) => void;
+  onGenerate: (month: number, year: number, workDays: number, defaultAllowances: Record<string, number>, defaultDeductions: Record<string, number>) => Promise<void>;
 }
 
 export default function GeneratePayrollModal({ isOpen, onClose, onGenerate }: GeneratePayrollModalProps) {
@@ -18,8 +18,9 @@ export default function GeneratePayrollModal({ isOpen, onClose, onGenerate }: Ge
   const [workDays, setWorkDays] = useState(22);
   const [defaultAllowances, setDefaultAllowances] = useState<Array<{key: string, value: number}>>([]);
   const [defaultDeductions, setDefaultDeductions] = useState<Array<{key: string, value: number}>>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const allowancesMap: Record<string, number> = {};
     defaultAllowances.forEach(item => {
@@ -31,7 +32,12 @@ export default function GeneratePayrollModal({ isOpen, onClose, onGenerate }: Ge
       if (item.key.trim()) deductionsMap[item.key.trim()] = item.value;
     });
 
-    onGenerate(month, year, workDays, allowancesMap, deductionsMap);
+    setIsLoading(true);
+    try {
+      await onGenerate(month, year, workDays, allowancesMap, deductionsMap);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -144,8 +150,11 @@ export default function GeneratePayrollModal({ isOpen, onClose, onGenerate }: Ge
         </div>
         
         <div className="pt-4 flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onClose}>Hủy</Button>
-          <Button type="submit">Tạo bảng lương</Button>
+          <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>Hủy</Button>
+          <Button type="submit" disabled={isLoading}>
+            {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            Tạo bảng lương
+          </Button>
         </div>
       </form>
     </Modal>

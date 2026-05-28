@@ -10,6 +10,7 @@ import type { EmployeeDto } from '../../types/hrm'
 import { useAuth } from '../../context/useAuth'
 import { useToast } from '../../context/ToastContext'
 import { PromptModal } from '../../components/ui/PromptModal'
+import { ConfirmModal } from '../../components/ui/ConfirmModal'
 
 type UiLeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED'
 
@@ -58,6 +59,8 @@ export default function LeaveRequestPage() {
     isOpen: boolean
     requestId: number | null
   }>({ isOpen: false, requestId: null })
+
+  const [initBalanceConfirm, setInitBalanceConfirm] = useState(false)
 
   const [updateBalanceModal, setUpdateBalanceModal] = useState<{
     isOpen: boolean
@@ -266,7 +269,9 @@ export default function LeaveRequestPage() {
     try {
       await leaveService.initBalance(adminEmployeeId, year)
       await loadAdminBalances()
+      toast.success('Khởi tạo số dư phép thành công!')
     } catch (err) {
+      toast.error((err as Error).message)
       setError((err as Error).message)
     } finally {
       setAdminBalanceLoading(false)
@@ -431,8 +436,8 @@ export default function LeaveRequestPage() {
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform animate-in zoom-in-95 duration-200 text-sm">
               <div className="flex items-center justify-between px-6 py-4 border-b">
                 <h3 className="text-lg font-bold text-slate-800">Tạo đơn xin nghỉ mới</h3>
-                <button 
-                  onClick={() => setShowCreateForm(false)} 
+                <button
+                  onClick={() => setShowCreateForm(false)}
                   className="p-1 hover:bg-slate-100 rounded-full transition-colors"
                 >
                   <X className="h-5 w-5 text-slate-400" />
@@ -525,8 +530,8 @@ export default function LeaveRequestPage() {
                 <Input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} />
               </div>
               <div className="flex items-end gap-2">
-                <Button onClick={() => void handleInitBalance()} disabled={adminBalanceLoading || !adminEmployeeId}>
-                  <Plus className="h-4 w-4" />
+                <Button onClick={() => setInitBalanceConfirm(true)} disabled={adminBalanceLoading || !adminEmployeeId}>
+                  <Plus className="h-4 w-4 mr-1" />
                   Khởi tạo phép
                 </Button>
               </div>
@@ -593,13 +598,22 @@ export default function LeaveRequestPage() {
         }}
       />
 
+      <ConfirmModal
+        isOpen={initBalanceConfirm}
+        onClose={() => setInitBalanceConfirm(false)}
+        onConfirm={handleInitBalance}
+        title="Xác nhận khởi tạo phép"
+        message={`Bạn có chắc chắn muốn khởi tạo danh sách số dư phép mặc định (Nghỉ ốm, Phép năm...) trong năm ${year} cho nhân viên này? (Nếu loại phép nào đã được khởi tạo trước đó thì sẽ được giữ nguyên)`}
+        confirmText="Khởi tạo"
+      />
+
       {updateBalanceModal.isOpen && updateBalanceModal.balance && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform animate-in zoom-in-95 duration-200 text-sm">
             <div className="flex items-center justify-between px-6 py-4 border-b">
               <h3 className="text-lg font-bold text-slate-800">Cập nhật số dư phép</h3>
-              <button 
-                onClick={() => setUpdateBalanceModal({ isOpen: false, balance: null, totalDays: '', carryOverDays: '' })} 
+              <button
+                onClick={() => setUpdateBalanceModal({ isOpen: false, balance: null, totalDays: '', carryOverDays: '' })}
                 className="p-1 hover:bg-slate-100 rounded-full transition-colors"
               >
                 <X className="h-5 w-5 text-slate-400" />
@@ -611,7 +625,7 @@ export default function LeaveRequestPage() {
               </p>
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-500">Tổng ngày phép mới</label>
-                <Input 
+                <Input
                   type="number"
                   value={updateBalanceModal.totalDays}
                   onChange={(e) => setUpdateBalanceModal(prev => ({ ...prev, totalDays: e.target.value }))}
@@ -620,7 +634,7 @@ export default function LeaveRequestPage() {
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-500">Ngày chuyển từ năm cũ (Carry Over)</label>
-                <Input 
+                <Input
                   type="number"
                   value={updateBalanceModal.carryOverDays}
                   onChange={(e) => setUpdateBalanceModal(prev => ({ ...prev, carryOverDays: e.target.value }))}
@@ -628,21 +642,21 @@ export default function LeaveRequestPage() {
                 />
               </div>
               <div className="mt-8 flex gap-3 justify-end pt-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setUpdateBalanceModal({ isOpen: false, balance: null, totalDays: '', carryOverDays: '' })} 
+                <Button
+                  variant="outline"
+                  onClick={() => setUpdateBalanceModal({ isOpen: false, balance: null, totalDays: '', carryOverDays: '' })}
                   className="rounded-xl px-6"
                 >
                   Hủy bỏ
                 </Button>
-                <Button 
+                <Button
                   onClick={async () => {
                     if (!updateBalanceModal.totalDays || !updateBalanceModal.carryOverDays) return
                     setAdminBalanceLoading(true)
                     try {
                       await leaveService.updateBalance(
-                        updateBalanceModal.balance!.id, 
-                        Number(updateBalanceModal.totalDays), 
+                        updateBalanceModal.balance!.id,
+                        Number(updateBalanceModal.totalDays),
                         Number(updateBalanceModal.carryOverDays)
                       )
                       toast.success('Cập nhật số dư phép thành công')
@@ -653,7 +667,7 @@ export default function LeaveRequestPage() {
                     } finally {
                       setAdminBalanceLoading(false)
                     }
-                  }} 
+                  }}
                   className="rounded-xl px-6 bg-[#3d6b59] hover:bg-[#3d6b59]/90 text-white"
                 >
                   Cập nhật

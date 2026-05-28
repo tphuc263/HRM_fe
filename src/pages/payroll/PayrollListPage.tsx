@@ -13,6 +13,7 @@ import GeneratePayrollModal from '../../components/payroll/GeneratePayrollModal'
 import EditPayrollModal from '../../components/payroll/EditPayrollModal';
 import BulkUpdateModal from '../../components/payroll/BulkUpdateModal';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
+import { downloadExcel } from '../../utils/exportUtils';
 
 // Tiện ích format tiền VNĐ
 const formatCurrency = (amount: number) => {
@@ -114,6 +115,7 @@ export default function PayrollListPage() {
         defaultAllowances,
         defaultDeductions
       });
+      toast.success("Tạo bảng lương thành công");
       setIsGenerateOpen(false);
       // Format lại month filter
       const newMonthFilter = `${year}-${String(month).padStart(2, '0')}`;
@@ -201,6 +203,36 @@ export default function PayrollListPage() {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
 
+  const handleExport = () => {
+    const headers = [
+      'Mã nhân viên',
+      'Họ và tên',
+      'Phòng ban',
+      'Lương cơ bản',
+      'Ngày công thực tế',
+      'Ngày công quy định',
+      'Phụ cấp',
+      'Khấu trừ',
+      'Lương thực nhận',
+      'Trạng thái',
+    ];
+
+    const rows = payrolls.map(payroll => [
+      payroll.employeeCode,
+      payroll.employeeName,
+      payroll.departmentName,
+      payroll.basicSalary,
+      payroll.actualDays,
+      payroll.workDays,
+      payroll.totalAllowances || 0,
+      payroll.totalDeductions || 0,
+      payroll.netSalary,
+      payroll.status,
+    ]);
+
+    downloadExcel(`bang-luong-${monthFilter}`, headers, rows);
+  };
+
   const startItem = totalItems === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
   const endItem = Math.min(currentPage * PAGE_SIZE, totalItems);
 
@@ -276,7 +308,7 @@ export default function PayrollListPage() {
               </span>
             )}
 
-            <Button variant="outline">
+            <Button variant="outline" onClick={handleExport} disabled={payrolls.length === 0}>
               <FileDown className="w-4 h-4 mr-2" /> Xuất Excel
             </Button>
           </div>

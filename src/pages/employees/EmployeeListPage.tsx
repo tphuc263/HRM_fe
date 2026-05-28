@@ -28,6 +28,7 @@ import { useToast } from '../../context/ToastContext'
 import type { EmployeeDto, EmployeeListQuery, EmployeeUpsertPayload, ContractDto, ContractUpsertPayload } from '../../types/hrm'
 import { useAuth } from '../../context/useAuth'
 import { ConfirmModal } from '../../components/ui/ConfirmModal'
+import { downloadExcel } from '../../utils/exportUtils'
 
 const PAGE_SIZE = 10
 
@@ -508,7 +509,7 @@ export default function EmployeeListPage() {
       ]
 
       const dateLabel = new Date().toISOString().slice(0, 10)
-      downloadCsv(`employees-${dateLabel}.csv`, rows)
+      downloadExcel(`employees-${dateLabel}`, rows[0], rows.slice(1))
     } catch (err) {
       toast.error((err as Error).message)
     } finally {

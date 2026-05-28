@@ -21,6 +21,7 @@ import { attendanceService } from '../../services/attendanceService'
 import type { AttendanceRecordDto, AttendanceUpdatePayload } from '../../types/attendance'
 import { useAuth } from '../../context/useAuth'
 import { useToast } from '../../context/ToastContext'
+import { downloadExcel } from '../../utils/exportUtils'
 
 const PAGE_SIZE = 10
 
@@ -302,9 +303,9 @@ export default function DailyAttendancePage() {
     ]
 
     const fileName = isAdmin
-      ? `attendance-daily-${date}-page-${currentPage}.csv`
-      : `attendance-history-${fromDate}-to-${toDate}-page-${currentPage}.csv`
-    downloadCsv(fileName, csvRows)
+      ? `attendance-daily-${date}-page-${currentPage}`
+      : `attendance-history-${fromDate}-to-${toDate}-page-${currentPage}`
+    downloadExcel(fileName, csvRows[0], csvRows.slice(1))
   }
 
   return (
