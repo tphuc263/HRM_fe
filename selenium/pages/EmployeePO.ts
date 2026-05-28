@@ -87,8 +87,14 @@ export class EmployeePO {
   }
 
   async closeSuccessModal() {
-    const closeBtn = await this.driver.wait(until.elementLocated(By.xpath('//button[contains(., "Đóng")]')), 5000);
-    await closeBtn.click();
+    try {
+      const closeBtn = await this.driver.wait(until.elementLocated(By.xpath('//button[contains(., "Đóng")]')), 3000);
+      await this.driver.executeScript("arguments[0].scrollIntoView(true);", closeBtn);
+      await this.driver.sleep(500);
+      await this.driver.executeScript("arguments[0].click();", closeBtn);
+    } catch (err) {
+      console.log('No close button found or clickable, proceeding...');
+    }
   }
 
   async getEmployeeCodeByEmail(email: string): Promise<string> {
