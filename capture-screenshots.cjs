@@ -2,6 +2,7 @@ const { Builder, By } = require('selenium-webdriver');
 const chrome = require('selenium-webdriver/chrome');
 const fs = require('fs');
 const path = require('path');
+const url = require('url');
 
 async function createScreenshot(filename, title, content) {
     const html = `
@@ -48,7 +49,7 @@ async function createScreenshot(filename, title, content) {
     
     let driver = await new Builder().forBrowser('chrome').setChromeOptions(options).build();
     try {
-        await driver.get('file://' + htmlPath);
+        await driver.get(url.pathToFileURL(htmlPath).href);
         const image = await driver.takeScreenshot();
         const outPath = path.join(__dirname, 'docs', 'test-reports', 'screenshots', filename);
         fs.mkdirSync(path.dirname(outPath), { recursive: true });

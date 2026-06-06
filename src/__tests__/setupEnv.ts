@@ -1,3 +1,4 @@
+process.env.TZ = 'Asia/Ho_Chi_Minh';
 const { TextEncoder, TextDecoder } = require('util');
 Object.assign(global, { TextDecoder, TextEncoder });
 

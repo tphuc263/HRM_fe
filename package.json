@@ -8,10 +8,10 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "jest --config jest.config.ts",
-    "test:watch": "jest --config jest.config.ts --watch",
-    "test:coverage": "jest --config jest.config.ts --coverage",
-    "test:e2e": "jest --config selenium/jest.config.ts selenium/flows/admin.workflow.e2e.test.ts --no-cache && jest --config selenium/jest.config.ts selenium/flows/employee.workflow.e2e.test.ts --no-cache"
+    "test": "cross-env TZ=Asia/Ho_Chi_Minh jest --config jest.config.ts",
+    "test:watch": "cross-env TZ=Asia/Ho_Chi_Minh jest --config jest.config.ts --watch",
+    "test:coverage": "cross-env TZ=Asia/Ho_Chi_Minh jest --config jest.config.ts --coverage",
+    "test:e2e": "cross-env TZ=Asia/Ho_Chi_Minh jest --config selenium/jest.config.ts selenium/flows/admin.workflow.e2e.test.ts --no-cache && cross-env TZ=Asia/Ho_Chi_Minh jest --config selenium/jest.config.ts selenium/flows/employee.workflow.e2e.test.ts --no-cache"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.3",
@@ -52,6 +52,7 @@
     "autoprefixer": "^10.4.27",
     "babel-jest": "^30.4.1",
     "babel-plugin-transform-import-meta": "^2.3.3",
+    "cross-env": "^10.1.0",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
