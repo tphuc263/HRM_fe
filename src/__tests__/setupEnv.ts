@@ -20,5 +20,36 @@ if (typeof global.BroadcastChannel === 'undefined') {
 
 require('whatwg-fetch');
 
+// Polyfill sessionStorage & localStorage for Node environment
+if (typeof global.sessionStorage === 'undefined') {
+  const storage: Record<string, string> = {};
+  // @ts-ignore
+  global.sessionStorage = {
+    getItem: (key: string) => storage[key] || null,
+    setItem: (key: string, value: string) => { storage[key] = String(value); },
+    removeItem: (key: string) => { delete storage[key]; },
+    clear: () => {
+      Object.keys(storage).forEach(key => delete storage[key]);
+    },
+    get length() { return Object.keys(storage).length; },
+    key: (index: number) => Object.keys(storage)[index] || null,
+  };
+}
+
+if (typeof global.localStorage === 'undefined') {
+  const storage: Record<string, string> = {};
+  // @ts-ignore
+  global.localStorage = {
+    getItem: (key: string) => storage[key] || null,
+    setItem: (key: string, value: string) => { storage[key] = String(value); },
+    removeItem: (key: string) => { delete storage[key]; },
+    clear: () => {
+      Object.keys(storage).forEach(key => delete storage[key]);
+    },
+    get length() { return Object.keys(storage).length; },
+    key: (index: number) => Object.keys(storage)[index] || null,
+  };
+}
+
 // Set env vars for apiClient fallback via process.env
 process.env.VITE_API_BASE_URL = 'http://localhost/api/v1';
